@@ -1,33 +1,44 @@
 import { Model, DataTypes, Sequelize, Optional } from "sequelize";
 import bcrypt from "bcrypt";
-// Change this import to use relative path
 import config from "../config/index.js";
+import { Roles } from "../constants/roles.js";
 
-// Define User attributes
 interface UserAttributes {
-  id: number;
+  id: string;
   username: string;
   email: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   isActive: boolean;
   role: string;
-  lastLogin?: Date;
-  createdAt?: Date;
-  updatedAt?: Date;
+  lastLogin: Date | null;
+  refreshToken: string | null;
+  passwordResetToken: string | null;
+  passwordResetExpires: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// Define optional attributes for creating a new User
 interface UserCreationAttributes
-  extends Optional<UserAttributes, "id" | "isActive" | "role"> {}
+  extends Optional<
+    UserAttributes,
+    | "id"
+    | "isActive"
+    | "role"
+    | "lastLogin"
+    | "refreshToken"
+    | "passwordResetToken"
+    | "passwordResetExpires"
+    | "createdAt"
+    | "updatedAt"
+  > {}
 
-// User model class
 class User
   extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes
 {
-  public id!: number;
+  public id!: string;
   public username!: string;
   public email!: string;
   public password!: string;
@@ -35,25 +46,31 @@ class User
   public lastName!: string;
   public isActive!: boolean;
   public role!: string;
-  public lastLogin!: Date;
+  public lastLogin!: Date | null;
+  public refreshToken!: string | null;
+  public passwordResetToken!: string | null;
+  public passwordResetExpires!: Date | null;
 
-  // Timestamps
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Method to validate password
-  public async validPassword(password: string): Promise<boolean> {
+  // Add comparePassword method that's used in auth service
+  public async comparePassword(password: string): Promise<boolean> {
     return bcrypt.compare(password, this.password);
+  }
+
+  // Keeping this for backward compatibility
+  public async validPassword(password: string): Promise<boolean> {
+    return this.comparePassword(password);
   }
 }
 
-// Initialize User model with Sequelize
 export const initUser = (sequelize: Sequelize, dataTypes: typeof DataTypes) => {
   User.init(
     {
       id: {
-        type: dataTypes.INTEGER,
-        autoIncrement: true,
+        type: dataTypes.UUID,
+        defaultValue: dataTypes.UUIDV4,
         primaryKey: true,
       },
       username: {
@@ -75,11 +92,11 @@ export const initUser = (sequelize: Sequelize, dataTypes: typeof DataTypes) => {
       },
       firstName: {
         type: dataTypes.STRING(50),
-        allowNull: true,
+        allowNull: false,
       },
       lastName: {
         type: dataTypes.STRING(50),
-        allowNull: true,
+        allowNull: false,
       },
       isActive: {
         type: dataTypes.BOOLEAN,
@@ -87,9 +104,24 @@ export const initUser = (sequelize: Sequelize, dataTypes: typeof DataTypes) => {
       },
       role: {
         type: dataTypes.STRING(20),
-        defaultValue: "user",
+        defaultValue: Roles.USER,
+        validate: {
+          isIn: [Object.values(Roles)],
+        },
       },
       lastLogin: {
+        type: dataTypes.DATE,
+        allowNull: true,
+      },
+      refreshToken: {
+        type: dataTypes.STRING,
+        allowNull: true,
+      },
+      passwordResetToken: {
+        type: dataTypes.STRING,
+        allowNull: true,
+      },
+      passwordResetExpires: {
         type: dataTypes.DATE,
         allowNull: true,
       },
@@ -124,11 +156,6 @@ export const initUser = (sequelize: Sequelize, dataTypes: typeof DataTypes) => {
       },
     }
   );
-
-  // Add any associations here
-  //   User.associate = (models: any) => {
-  //     // Example: User.hasMany(models.Post)
-  //   };
 
   return User;
 };

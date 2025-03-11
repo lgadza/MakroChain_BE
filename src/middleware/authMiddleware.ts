@@ -1,82 +1,105 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthService } from "../services/auth.service.js";
-import { ErrorFactory } from "../utils/errorUtils.js";
+import { verifyAccessToken } from "../utils/jwt.util.js";
+import logger from "../utils/logger.js";
+import { createError } from "../utils/errorUtils.js";
 
-// Augment Express Request interface
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
+/**
+ * Extended Express Request interface with user data
+ */
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    role: string;
+    [key: string]: any;
+  };
 }
 
-export const authMiddleware = async (
-  req: Request,
+/**
+ * Authentication middleware to validate JWT tokens
+ */
+export const authenticate = async (
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
+    // Get token from Authorization header
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw ErrorFactory.unauthorized("No token provided", "UNAUTHORIZED");
+      next(createError(401, "Authentication required"));
+      return;
     }
 
     const token = authHeader.split(" ")[1];
-    const authService = new AuthService();
+
+    if (!token) {
+      next(createError(401, "Invalid authentication token"));
+      return;
+    }
 
     try {
-      const decoded = authService.verifyToken(token);
-      req.user = decoded;
+      // Verify the token and extract user data
+      const decodedToken = verifyAccessToken(token);
+
+      // Attach user info to the request object
+      req.user = {
+        ...decodedToken,
+        userId: decodedToken.userId,
+      };
+
       next();
     } catch (error) {
-      next(error);
+      if (error instanceof Error && error.message === "Token expired") {
+        next(createError(401, "Token expired"));
+      } else {
+        next(createError(401, "Invalid authentication token"));
+      }
     }
   } catch (error) {
-    next(error);
+    logger.error(
+      `Authentication error: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+    next(createError(500, "Authentication process failed"));
   }
 };
 
-export const optionalAuth = async (
-  req: Request,
+/**
+ * Optional authentication that doesn't require a token but uses it if present
+ */
+export const optionalAuthenticate = async (
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return next();
+      next();
+      return;
     }
 
     const token = authHeader.split(" ")[1];
-    const authService = new AuthService();
+
+    if (!token) {
+      next();
+      return;
+    }
 
     try {
-      const decoded = authService.verifyToken(token);
-      req.user = decoded;
+      const decodedToken = verifyAccessToken(token);
+      req.user = {
+        ...decodedToken,
+      };
     } catch (error) {
-      // Just continue without setting req.user
+      // Silently fail and continue without authentication
     }
+
     next();
   } catch (error) {
-    next(error);
-  }
-};
-
-export const roleMiddleware = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(
-        ErrorFactory.unauthorized("Authentication required", "UNAUTHORIZED")
-      );
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return next(
-        ErrorFactory.forbidden("Insufficient permissions", "UNAUTHORIZED")
-      );
-    }
-
     next();
-  };
+  }
 };

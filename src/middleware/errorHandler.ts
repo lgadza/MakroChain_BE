@@ -1,140 +1,190 @@
 import { Request, Response, NextFunction } from "express";
-import { ErrorCodes, ErrorCodeType } from "../constants/errorCodes.js";
 import logger from "../utils/logger.js";
+import {
+  ErrorCode,
+  ErrorCodeType,
+  ERROR_CODE_MESSAGES,
+  HTTP_STATUS_TO_ERROR_CODE,
+} from "../constants/errorCodes.js";
 
+/**
+ * Base application error class
+ */
 export class AppError extends Error {
   statusCode: number;
-  isOperational: boolean;
-  errorCode?: number;
+  errorCode?: ErrorCodeType;
   details?: unknown;
 
   constructor(
-    message: string,
-    statusCode: number,
-    errorCodeType?: ErrorCodeType,
+    message?: string,
+    statusCode = 500,
+    errorCode?: ErrorCodeType,
     details?: unknown
   ) {
-    super(message);
+    super(message || "An unexpected error occurred");
     this.statusCode = statusCode;
-    this.isOperational = true;
-
-    if (errorCodeType) {
-      this.errorCode = ErrorCodes[errorCodeType].code;
-      // Use custom message if provided, otherwise use default error code message
-      if (message === ErrorCodes[errorCodeType].message) {
-        this.message = ErrorCodes[errorCodeType].message;
-      }
-    }
-
+    this.errorCode = errorCode;
     this.details = details;
+    this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
+/**
+ * 400 Bad Request Error
+ */
 export class BadRequestError extends AppError {
   constructor(
-    message: string = "Bad request",
-    errorCodeType?: ErrorCodeType,
+    message?: string,
+    errorCode: ErrorCodeType = ErrorCode.INVALID_INPUT,
     details?: unknown
   ) {
-    super(message, 400, errorCodeType, details);
+    super(message || ERROR_CODE_MESSAGES[errorCode], 400, errorCode, details);
   }
 }
 
+/**
+ * 401 Unauthorized Error
+ */
 export class UnauthorizedError extends AppError {
   constructor(
-    message: string = "Unauthorized",
-    errorCodeType: ErrorCodeType = "UNAUTHORIZED",
+    message?: string,
+    errorCode: ErrorCodeType = ErrorCode.INVALID_CREDENTIALS,
     details?: unknown
   ) {
-    super(message, 401, errorCodeType, details);
+    super(message || ERROR_CODE_MESSAGES[errorCode], 401, errorCode, details);
   }
 }
 
+/**
+ * 403 Forbidden Error
+ */
 export class ForbiddenError extends AppError {
   constructor(
-    message: string = "Forbidden",
-    errorCodeType?: ErrorCodeType,
+    message?: string,
+    errorCode: ErrorCodeType = ErrorCode.INSUFFICIENT_PERMISSIONS,
     details?: unknown
   ) {
-    super(message, 403, errorCodeType, details);
+    super(message || ERROR_CODE_MESSAGES[errorCode], 403, errorCode, details);
   }
 }
 
+/**
+ * 404 Not Found Error
+ */
 export class NotFoundError extends AppError {
   constructor(
-    message: string = "Not found",
-    errorCodeType: ErrorCodeType = "RESOURCE_NOT_FOUND",
+    message?: string,
+    errorCode: ErrorCodeType = ErrorCode.RESOURCE_NOT_FOUND,
     details?: unknown
   ) {
-    super(message, 404, errorCodeType, details);
+    super(message || ERROR_CODE_MESSAGES[errorCode], 404, errorCode, details);
   }
 }
 
+/**
+ * 409 Conflict Error
+ */
 export class ConflictError extends AppError {
   constructor(
-    message: string = "Conflict",
-    errorCodeType: ErrorCodeType = "RESOURCE_CONFLICT",
+    message?: string,
+    errorCode: ErrorCodeType = ErrorCode.RESOURCE_ALREADY_EXISTS,
     details?: unknown
   ) {
-    super(message, 409, errorCodeType, details);
+    super(message || ERROR_CODE_MESSAGES[errorCode], 409, errorCode, details);
   }
 }
 
+/**
+ * 422 Validation Error
+ */
 export class ValidationError extends AppError {
   constructor(
-    message: string = "Validation failed",
-    errorCodeType: ErrorCodeType = "VALIDATION_ERROR",
+    message?: string,
+    errorCode: ErrorCodeType = ErrorCode.VALIDATION_ERROR,
     details?: unknown
   ) {
-    super(message, 422, errorCodeType, details);
+    super(message || ERROR_CODE_MESSAGES[errorCode], 422, errorCode, details);
   }
 }
 
+/**
+ * 500 Internal Server Error
+ */
 export class InternalServerError extends AppError {
   constructor(
-    message: string = "Internal server error",
-    errorCodeType: ErrorCodeType = "INTERNAL_SERVER_ERROR",
+    message?: string,
+    errorCode: ErrorCodeType = ErrorCode.INTERNAL_SERVER_ERROR,
     details?: unknown
   ) {
-    super(message, 500, errorCodeType, details);
+    super(message || ERROR_CODE_MESSAGES[errorCode], 500, errorCode, details);
   }
 }
 
+/**
+ * Global error handling middleware
+ */
 export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction
-) => {
-  const statusCode = "statusCode" in err ? err.statusCode : 500;
-  const message = err.message || "Something went wrong";
-  const errorCode = "errorCode" in err ? err.errorCode : undefined;
-  const details = "details" in err ? err.details : undefined;
+): void => {
+  // Default error response
+  let statusCode = 500;
+  let message = "Internal Server Error";
+  let errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+  let details: unknown;
 
-  // Log different levels based on status code
-  const logMethod = statusCode >= 500 ? logger.error : logger.warn;
+  // If it's our custom AppError, use its properties
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    errorCode =
+      (err.errorCode as ErrorCode) ||
+      (HTTP_STATUS_TO_ERROR_CODE[statusCode] as ErrorCode) ||
+      ErrorCode.INTERNAL_SERVER_ERROR;
+    details = err.details;
+  } else if (err instanceof Error) {
+    // For standard errors, use the message but keep status 500
+    message = err.message || message;
+  }
 
-  logMethod(`[${statusCode}] ${message}`, {
-    errorCode,
-    error: err.stack,
-    path: req.path,
-    method: req.method,
-    details,
-    userId: req.headers["user-id"] || "anonymous",
-    requestId: req.headers["x-request-id"] || "unknown",
-  });
+  // Log the error with appropriate level based on status code
+  if (statusCode >= 500) {
+    logger.error(
+      `Error ${statusCode}: ${message}${err.stack ? `\n${err.stack}` : ""}`
+    );
+  } else if (statusCode >= 400) {
+    logger.warn(`Error ${statusCode}: ${message}`);
+  }
 
-  // Format response based on environment
-  const response = {
+  // Prepare response object
+  const errorResponse = {
     status: "error",
     statusCode,
     message,
-    ...(errorCode && { errorCode }),
-    ...(process.env.NODE_ENV === "development" && details ? { details } : {}),
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    errorCode,
+    ...(details ? { details } : {}),
+    // Only include stack in development mode
+    ...(process.env.NODE_ENV === "development" && err.stack
+      ? { stack: err.stack }
+      : {}),
   };
 
-  res.status(statusCode).json(response);
+  // Send response
+  res.status(statusCode).json(errorResponse);
+};
+
+/**
+ * Catch-all for unhandled routes
+ */
+export const notFound = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const error = new NotFoundError(`Not Found - ${req.originalUrl}`);
+  next(error);
 };
