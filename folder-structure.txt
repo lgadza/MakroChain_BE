@@ -1,22 +1,25 @@
 Project Folder Structure:
-├── config
-│   ├── config.json
-│   └── index.ts
 ├── folder-structure.txt
 ├── getFolderStructure.ts
 ├── jest.config.js
 ├── jsconfig.json
+├── logs
+│   ├── combined.log
+│   └── error.log
 ├── migrations
 ├── nodemon.json
 ├── package-lock.json
 ├── package.json
 ├── README.md
 ├── run-ts-node.bat
+├── scripts
 ├── seeders
 ├── src
 │   ├── config
 │   │   ├── config.json
-│   │   └── database.ts
+│   │   ├── database.ts
+│   │   ├── index.js
+│   │   └── index.ts
 │   ├── constants
 │   │   └── errorCodes.ts
 │   ├── controllers
@@ -44,10 +47,11 @@ Project Folder Structure:
 │   │   └── swagger-jsdoc.d.ts
 │   └── utils
 │       ├── dbConnect.ts
-│       ├── endpointLogger.ts
+│       ├── dbConnectionTest.ts
 │       ├── errorUtils.ts
 │       ├── logger.ts
 │       ├── swagger.js
-│       └── swagger.ts
+│       ├── swagger.ts
+│       └── validateEnv.ts
 ├── tsconfig.json
 └── tsconfig.node.json

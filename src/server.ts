@@ -6,15 +6,17 @@ import cors from "cors";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import { rateLimit } from "express-rate-limit";
+import listEndpoints from "express-list-endpoints";
+import Table from "cli-table3";
+import chalk from "chalk";
 import { errorHandler } from "./middleware/errorHandler.js";
 import routes from "./routes/index.js";
 import { setupLogger } from "./utils/logger.js";
 import { connectDB } from "./utils/dbConnect.js";
 import swaggerDocs from "./utils/swagger.js";
-import { logEndpoints } from "./utils/endpointLogger.js";
 import { applyHelmetMiddleware } from "./middleware/helmet.middleware.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
-import config from "./config/index.js"; // Fixed import path with .js extension
+import config from "./config/index.js";
 
 const app = express();
 const logger = setupLogger();
@@ -28,12 +30,11 @@ const limiter = rateLimit({
 });
 
 // Middleware
-applyHelmetMiddleware(app); // Apply helmet middleware
+applyHelmetMiddleware(app);
 app.use(cors());
 app.use(express.json());
 app.use(morgan("combined"));
 app.use(limiter);
-// app.use(apiLimiter); // Apply the rate limiting middleware to all requests
 
 // Swagger API Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
@@ -59,8 +60,63 @@ const startServer = async () => {
         `API Documentation available at http://localhost:${PORT}/api-docs`
       );
 
-      // Log all registered endpoints as a table
-      logEndpoints(app, logger);
+      // Log all registered endpoints using proper table formatting
+      try {
+        const endpoints = listEndpoints(app);
+        const totalRoutes = endpoints.reduce(
+          (count, route) => count + route.methods.length,
+          0
+        );
+
+        // Define the table with column headers
+        const table = new Table({
+          head: [
+            chalk.bold("METHOD"),
+            chalk.bold("PATH"),
+            chalk.bold("MIDDLEWARE"),
+          ],
+          colWidths: [15, 50, 50],
+          style: {
+            head: ["cyan"],
+            border: ["gray"],
+          },
+        });
+
+        // Add rows to the table
+        endpoints.forEach((route) => {
+          const path = route.path;
+          const middleware = route.middlewares.join(", ") || "none";
+
+          route.methods.forEach((method) => {
+            // Color the method based on type
+            let coloredMethod;
+            switch (method) {
+              case "GET":
+                coloredMethod = chalk.green(method);
+                break;
+              case "POST":
+                coloredMethod = chalk.yellow(method);
+                break;
+              case "PUT":
+                coloredMethod = chalk.blue(method);
+                break;
+              case "DELETE":
+                coloredMethod = chalk.red(method);
+                break;
+              default:
+                coloredMethod = chalk.gray(method);
+            }
+
+            table.push([coloredMethod, path, middleware]);
+          });
+        });
+
+        // Log the table with a header
+        logger.info(`API Routes (${totalRoutes} total routes):`);
+        console.log(table.toString());
+      } catch (error) {
+        logger.error("Failed to generate endpoints table", { error });
+      }
     });
 
     // For graceful shutdown
