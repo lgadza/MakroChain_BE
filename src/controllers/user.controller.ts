@@ -4,6 +4,7 @@ import logger from "../utils/logger.js";
 import { AuthenticatedRequest } from "../middleware/authMiddleware.js";
 import { createError } from "../utils/errorUtils.js";
 import { asyncHandler } from "../utils/errorUtils.js";
+import { sendSuccess } from "../utils/responseUtil.js";
 
 export class UserController {
   private userService: UserService;
@@ -26,14 +27,12 @@ export class UserController {
 
       const result = await this.userService.getAllUsers(page, limit);
 
-      res.status(200).json({
-        success: true,
-        data: result.users,
-        meta: {
-          total: result.total,
-          pages: result.pages,
+      sendSuccess(res, result.users, "Users retrieved successfully", 200, {
+        pagination: {
           page,
           limit,
+          total: result.total,
+          totalPages: result.pages,
         },
       });
     } catch (error) {
@@ -66,16 +65,14 @@ export class UserController {
 
       const result = await this.userService.searchUsers(query, page, limit);
 
-      res.status(200).json({
-        success: true,
-        data: result.users,
-        meta: {
-          total: result.total,
-          pages: result.pages,
+      sendSuccess(res, result.users, "Search results retrieved", 200, {
+        pagination: {
           page,
           limit,
-          query,
+          total: result.total,
+          totalPages: result.pages,
         },
+        query,
       });
     } catch (error) {
       logger.error(
@@ -99,10 +96,7 @@ export class UserController {
       const { id } = req.params;
       const user = await this.userService.getUserById(id);
 
-      res.status(200).json({
-        success: true,
-        data: user,
-      });
+      sendSuccess(res, user, "User retrieved successfully");
     } catch (error) {
       next(error);
     }
@@ -128,11 +122,7 @@ export class UserController {
 
       const updatedUser = await this.userService.updateUser(id, updateData);
 
-      res.status(200).json({
-        success: true,
-        message: "User updated successfully",
-        data: updatedUser,
-      });
+      sendSuccess(res, updatedUser, "User updated successfully");
     } catch (error) {
       next(error);
     }
@@ -150,10 +140,7 @@ export class UserController {
       const { id } = req.params;
       await this.userService.deleteUser(id);
 
-      res.status(200).json({
-        success: true,
-        message: "User deleted successfully",
-      });
+      sendSuccess(res, null, "User deleted successfully");
     } catch (error) {
       next(error);
     }
@@ -171,10 +158,7 @@ export class UserController {
       const { id } = req.params;
       await this.userService.deactivateUser(id);
 
-      res.status(200).json({
-        success: true,
-        message: "User deactivated successfully",
-      });
+      sendSuccess(res, null, "User deactivated successfully");
     } catch (error) {
       next(error);
     }
@@ -192,10 +176,7 @@ export class UserController {
       const { id } = req.params;
       await this.userService.activateUser(id);
 
-      res.status(200).json({
-        success: true,
-        message: "User activated successfully",
-      });
+      sendSuccess(res, null, "User activated successfully");
     } catch (error) {
       next(error);
     }
@@ -224,10 +205,7 @@ export class UserController {
         newPassword
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Password changed successfully",
-      });
+      sendSuccess(res, null, "Password changed successfully");
     } catch (error) {
       next(error);
     }

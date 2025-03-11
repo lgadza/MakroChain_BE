@@ -1,13 +1,16 @@
 import { Request, Response } from "express";
+import { sendSuccess } from "../utils/responseUtil.js";
 
 class HealthController {
   public check = (req: Request, res: Response): void => {
-    res.status(200).json({
-      status: "success",
-      message: "Server is healthy",
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-    });
+    sendSuccess(
+      res,
+      {
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+      },
+      "Server is healthy"
+    );
   };
 }
 

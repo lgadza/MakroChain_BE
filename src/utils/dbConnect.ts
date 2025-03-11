@@ -1,8 +1,8 @@
-import { Sequelize } from "sequelize";
+import { Sequelize, DataTypes } from "sequelize";
 import dotenv from "dotenv";
-// Using relative imports instead of path aliases
 import { initModels } from "../models/index.js";
 import { setupLogger } from "./logger.js";
+import { initUser } from "../models/user.model.js";
 
 dotenv.config();
 const logger = setupLogger();
@@ -32,17 +32,36 @@ const sequelize = new Sequelize(
   }
 );
 
+// Initialize all models
+export const initializeModels = () => {
+  // Initialize User model
+  const User = initUser(sequelize, DataTypes);
+
+  // Add other model initializations here as your app grows
+
+  return {
+    User,
+    // Add other models here
+  };
+};
+
+// Connect to database and sync all models
 export const connectDB = async () => {
   try {
-    await sequelize.authenticate();
-    logger.info("Database connection has been established successfully.");
+    // Initialize all models
+    initializeModels();
 
-    // Initialize models
-    initModels(sequelize);
+    // Sync all models with the database
+    // In development, you might want to use { force: true } to recreate tables
+    // In production, use { alter: true } for safer migrations or don't use any parameter
+    await sequelize.sync();
 
-    return sequelize;
+    logger.info("Database synchronized successfully");
+    return true;
   } catch (error) {
-    logger.error("Unable to connect to the database:", error);
+    logger.error("Unable to connect to the database or sync models:", {
+      error,
+    });
     throw error;
   }
 };

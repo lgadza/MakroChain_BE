@@ -4,6 +4,7 @@ import { createError } from "../utils/errorUtils.js";
 import { AuthService } from "../services/auth.service.js";
 import { LoginDto, RegisterDto } from "../dto/auth.dto.js";
 import { AuthenticatedRequest } from "../middleware/authMiddleware.js";
+import { sendSuccess } from "../utils/responseUtil.js";
 
 export class AuthController {
   private authService: AuthService;
@@ -24,14 +25,15 @@ export class AuthController {
       const userData: RegisterDto = req.body;
       const result = await this.authService.register(userData);
 
-      res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        data: {
+      sendSuccess(
+        res,
+        {
           user: result.user,
           tokens: result.tokens,
         },
-      });
+        "User registered successfully",
+        201
+      );
     } catch (error) {
       logger.error(
         `Registration failed: ${
@@ -58,14 +60,14 @@ export class AuthController {
       const loginData: LoginDto = req.body;
       const result = await this.authService.login(loginData);
 
-      res.status(200).json({
-        success: true,
-        message: "Login successful",
-        data: {
+      sendSuccess(
+        res,
+        {
           user: result.user,
           tokens: result.tokens,
         },
-      });
+        "Login successful"
+      );
     } catch (error) {
       logger.error(
         `Login failed: ${
@@ -98,11 +100,7 @@ export class AuthController {
 
       const tokens = await this.authService.refreshToken(refreshToken);
 
-      res.status(200).json({
-        success: true,
-        message: "Token refreshed successfully",
-        data: { tokens },
-      });
+      sendSuccess(res, { tokens }, "Token refreshed successfully");
     } catch (error) {
       logger.error(
         `Token refresh failed: ${
@@ -135,10 +133,7 @@ export class AuthController {
 
       await this.authService.logout(userId);
 
-      res.status(200).json({
-        success: true,
-        message: "Logged out successfully",
-      });
+      sendSuccess(res, null, "Logged out successfully");
     } catch (error) {
       logger.error(
         `Logout failed: ${
@@ -167,10 +162,7 @@ export class AuthController {
 
       const user = await this.authService.getUserById(userId);
 
-      res.status(200).json({
-        success: true,
-        data: { user },
-      });
+      sendSuccess(res, { user });
     } catch (error) {
       logger.error(
         `Get current user failed: ${

@@ -21,14 +21,18 @@ Project Folder Structure:
 │   │   ├── index.js
 │   │   └── index.ts
 │   ├── constants
-│   │   └── errorCodes.ts
+│   │   ├── errorCodes.ts
+│   │   └── roles.ts
 │   ├── controllers
-│   │   └── health.controller.ts
+│   │   ├── auth.controller.ts
+│   │   ├── health.controller.ts
+│   │   └── user.controller.ts
 │   ├── dto
 │   │   ├── auth.dto.ts
 │   │   └── user.dto.ts
 │   ├── middleware
 │   │   ├── authMiddleware.ts
+│   │   ├── authorizationMiddleware.ts
 │   │   ├── errorHandler.ts
 │   │   ├── helmet.middleware.ts
 │   │   ├── rateLimiter.ts
@@ -38,20 +42,37 @@ Project Folder Structure:
 │   │   └── user.model.ts
 │   ├── repositories
 │   ├── routes
+│   │   ├── auth.routes.ts
 │   │   ├── health.routes.ts
-│   │   └── index.ts
+│   │   ├── index.ts
+│   │   └── user.routes.ts
 │   ├── server.ts
 │   ├── services
+│   │   ├── auth.service.ts
+│   │   ├── index.ts
+│   │   └── user.service.ts
+│   ├── tests
+│   │   ├── controllers
+│   │   │   ├── auth.controller.test.ts
+│   │   │   └── user.controller.test.ts
+│   │   ├── services
+│   │   │   ├── auth.service.test.ts
+│   │   │   └── user.service.test.ts
+│   │   ├── setup.ts
+│   │   └── test-utils.ts
 │   ├── types
 │   │   ├── express-list-endpoints.d.ts
+│   │   ├── jest.d.ts
 │   │   └── swagger-jsdoc.d.ts
-│   └── utils
-│       ├── dbConnect.ts
-│       ├── dbConnectionTest.ts
-│       ├── errorUtils.ts
-│       ├── logger.ts
-│       ├── swagger.js
-│       ├── swagger.ts
-│       └── validateEnv.ts
+│   ├── utils
+│   │   ├── dbConnect.ts
+│   │   ├── dbConnectionTest.ts
+│   │   ├── errorUtils.ts
+│   │   ├── jwt.util.ts
+│   │   ├── logger.ts
+│   │   ├── swagger.js
+│   │   ├── swagger.ts
+│   │   └── validateEnv.ts
+│   └── validators
 ├── tsconfig.json
 └── tsconfig.node.json

@@ -50,9 +50,9 @@ const PORT = config.port || 3000;
 // Function to initialize server
 const startServer = async () => {
   try {
-    // Connect to database
+    // Connect to database and initialize models
     await connectDB();
-    logger.info("Database connection established");
+    logger.info("Database connection established and models synchronized");
 
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
