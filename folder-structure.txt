@@ -1,0 +1,53 @@
+Project Folder Structure:
+├── config
+│   ├── config.json
+│   └── index.ts
+├── folder-structure.txt
+├── getFolderStructure.ts
+├── jest.config.js
+├── jsconfig.json
+├── migrations
+├── nodemon.json
+├── package-lock.json
+├── package.json
+├── README.md
+├── run-ts-node.bat
+├── seeders
+├── src
+│   ├── config
+│   │   ├── config.json
+│   │   └── database.ts
+│   ├── constants
+│   │   └── errorCodes.ts
+│   ├── controllers
+│   │   └── health.controller.ts
+│   ├── dto
+│   │   ├── auth.dto.ts
+│   │   └── user.dto.ts
+│   ├── middleware
+│   │   ├── authMiddleware.ts
+│   │   ├── errorHandler.ts
+│   │   ├── helmet.middleware.ts
+│   │   ├── rateLimiter.ts
+│   │   └── validation.middleware.ts
+│   ├── models
+│   │   ├── index.ts
+│   │   └── user.model.ts
+│   ├── repositories
+│   ├── routes
+│   │   ├── health.routes.ts
+│   │   └── index.ts
+│   ├── server.ts
+│   ├── services
+│   ├── types
+│   │   ├── express-list-endpoints.d.ts
+│   │   └── swagger-jsdoc.d.ts
+│   └── utils
+│       ├── dbConnect.ts
+│       ├── endpointLogger.ts
+│       ├── errorUtils.ts
+│       ├── logger.ts
+│       ├── swagger.js
+│       └── swagger.ts
+├── tsconfig.json
+└── tsconfig.node.json

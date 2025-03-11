@@ -1,0 +1,7 @@
+{
+  "esm": true,
+  "experimentalSpecifierResolution": "node",
+  "compilerOptions": {
+    "module": "Node16"
+  }
+}
