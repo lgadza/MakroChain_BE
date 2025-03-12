@@ -7,6 +7,7 @@ import phoneRoutes from "./phone.routes.js";
 import harvestRoutes from "./harvest.routes.js";
 import transactionRoutes from "./transaction.routes.js";
 import loanRoutes from "./loan.routes.js";
+import tokenRoutes from "./token.routes.js";
 
 // Create a router instance
 const router = express.Router();
@@ -20,6 +21,7 @@ router.use("/phones", phoneRoutes);
 router.use("/harvests", harvestRoutes);
 router.use("/transactions", transactionRoutes);
 router.use("/loans", loanRoutes);
+router.use("/tokens", tokenRoutes);
 
 // Add more routes here as they are developed
 // Example:

@@ -2,13 +2,21 @@
  * Transaction type constants
  */
 export enum TransactionType {
-  SALE = "SALE",
-  PAYMENT = "PAYMENT",
-  REFUND = "REFUND",
   DEPOSIT = "DEPOSIT",
   WITHDRAWAL = "WITHDRAWAL",
+  PAYMENT = "PAYMENT",
+  REFUND = "REFUND",
   FEE = "FEE",
-  OTHER = "OTHER",
+  TRANSFER = "TRANSFER",
+  INTEREST = "INTEREST",
+  ADJUSTMENT = "ADJUSTMENT",
+  HARVEST_SALE = "HARVEST_SALE",
+  LOAN_DISBURSEMENT = "LOAN_DISBURSEMENT",
+  LOAN_PAYMENT = "LOAN_PAYMENT",
+  TOKEN_ISSUANCE = "TOKEN_ISSUANCE", // Added for token minting
+  TOKEN_REDEMPTION = "TOKEN_REDEMPTION", // Added for token redemption
+  TOKEN_TRANSFER = "TOKEN_TRANSFER", // Added for token transfers
+  SALE = "SALE", // Added for general sales transactions
 }
 
 /**
@@ -20,6 +28,7 @@ export enum TransactionStatus {
   FAILED = "FAILED",
   CANCELLED = "CANCELLED",
   REFUNDED = "REFUNDED",
+  PROCESSING = "PROCESSING",
 }
 
 /**
@@ -29,9 +38,10 @@ export enum PaymentMethod {
   CASH = "CASH",
   BANK_TRANSFER = "BANK_TRANSFER",
   MOBILE_MONEY = "MOBILE_MONEY",
-  CREDIT_CARD = "CREDIT_CARD",
-  CRYPTO = "CRYPTO",
-  PLATFORM_CREDIT = "PLATFORM_CREDIT",
+  CARD = "CARD",
+  CHECK = "CHECK",
+  CREDIT = "CREDIT",
+  BLOCKCHAIN = "BLOCKCHAIN", // Added for blockchain transactions
   OTHER = "OTHER",
 }
 
@@ -41,8 +51,14 @@ export enum PaymentMethod {
 export enum Currency {
   USD = "USD",
   EUR = "EUR",
-  ZIG = "ZIG", // Local currency example
+  GBP = "GBP",
+  INR = "INR",
+  KES = "KES",
+  NGN = "NGN",
   ZAR = "ZAR",
+  TOKEN = "TOKEN", // Added for token currency
+  ETH = "ETH", // Added for Ethereum
+  MATIC = "MATIC", // Added for Polygon/Matic
 }
 
 /**

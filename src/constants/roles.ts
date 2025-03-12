@@ -19,6 +19,7 @@ export enum Resources {
   REPORTS = "REPORTS",
   SETTINGS = "SETTINGS",
   LOANS = "LOANS",
+  TOKENS = "TOKENS",
 }
 
 /**
@@ -92,6 +93,16 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.APPROVE,
       Permissions.REJECT,
     ],
+    [Resources.TOKENS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+      Permissions.DELETE,
+      Permissions.EXPORT,
+      Permissions.IMPORT,
+      Permissions.APPROVE,
+      Permissions.REJECT,
+    ],
   },
   [Roles.MANAGER]: {
     [Resources.USERS]: [
@@ -130,6 +141,14 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.APPROVE,
       Permissions.REJECT,
     ],
+    [Resources.TOKENS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+      Permissions.DELETE,
+      Permissions.EXPORT,
+      Permissions.APPROVE,
+    ],
   },
   [Roles.FARMER]: {
     [Resources.USERS]: [Permissions.READ, Permissions.UPDATE],
@@ -151,6 +170,7 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.READ,
       Permissions.UPDATE,
     ],
+    [Resources.TOKENS]: [Permissions.READ, Permissions.UPDATE],
   },
   [Roles.BUYER]: {
     [Resources.USERS]: [Permissions.READ, Permissions.UPDATE],
@@ -159,6 +179,7 @@ export const RBAC_MATRIX: RbacMatrix = {
     [Resources.REPORTS]: [],
     [Resources.SETTINGS]: [Permissions.READ],
     [Resources.LOANS]: [],
+    [Resources.TOKENS]: [Permissions.READ],
   },
   [Roles.GUEST]: {
     [Resources.USERS]: [],
@@ -167,6 +188,7 @@ export const RBAC_MATRIX: RbacMatrix = {
     [Resources.REPORTS]: [],
     [Resources.SETTINGS]: [],
     [Resources.LOANS]: [],
+    [Resources.TOKENS]: [Permissions.READ],
   },
 };
 
