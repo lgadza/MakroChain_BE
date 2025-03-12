@@ -1,4 +1,10 @@
 Project Folder Structure:
+├── coverage
+│   ├── clover.xml
+│   ├── coverage-final.json
+│   └── lcov.info
+├── docker-compose.yml
+├── Dockerfile
 ├── folder-structure.txt
 ├── getFolderStructure.ts
 ├── jest.config.js
@@ -6,30 +12,54 @@ Project Folder Structure:
 ├── logs
 │   ├── combined.log
 │   └── error.log
-├── migrations
 ├── nodemon.json
 ├── package-lock.json
 ├── package.json
 ├── README.md
 ├── run-ts-node.bat
 ├── scripts
-├── seeders
 ├── src
 │   ├── config
+│   │   ├── app.config.ts
 │   │   ├── config.json
 │   │   ├── database.ts
-│   │   ├── index.js
 │   │   └── index.ts
 │   ├── constants
+│   │   ├── addressTypes.ts
 │   │   ├── errorCodes.ts
-│   │   └── roles.ts
+│   │   ├── harvestTypes.ts
+│   │   ├── loanTypes.ts
+│   │   ├── phoneTypes.ts
+│   │   ├── roles.ts
+│   │   ├── tokenTypes.ts
+│   │   └── transactionTypes.ts
 │   ├── controllers
+│   │   ├── address.controller.ts
 │   │   ├── auth.controller.ts
+│   │   ├── harvest.controller.ts
 │   │   ├── health.controller.ts
+│   │   ├── loan.controller.ts
+│   │   ├── phone.controller.ts
+│   │   ├── token.controller.ts
+│   │   ├── transaction.controller.ts
 │   │   └── user.controller.ts
 │   ├── dto
+│   │   ├── address.dto.ts
 │   │   ├── auth.dto.ts
+│   │   ├── harvest.dto.ts
+│   │   ├── loan.dto.ts
+│   │   ├── phone.dto.ts
+│   │   ├── token.dto.ts
+│   │   ├── transaction.dto.ts
 │   │   └── user.dto.ts
+│   ├── interfaces
+│   │   └── services
+│   │       ├── auth.service.interface.ts
+│   │       ├── harvest.service.interface.ts
+│   │       ├── loan.service.interface.ts
+│   │       ├── token.service.interface.ts
+│   │       ├── transaction.service.interface.ts
+│   │       └── user.service.interface.ts
 │   ├── middleware
 │   │   ├── authMiddleware.ts
 │   │   ├── authorizationMiddleware.ts
@@ -37,29 +67,74 @@ Project Folder Structure:
 │   │   ├── helmet.middleware.ts
 │   │   ├── rateLimiter.ts
 │   │   └── validation.middleware.ts
+│   ├── migrations
+│   │   ├── 20230825000000-create-harvests-table.js
+│   │   ├── 20230826000000-create-transactions-table.js
+│   │   ├── 20230827000000-create-loans-table.js
+│   │   └── 20230828000000-create-tokens-table.js
 │   ├── models
+│   │   ├── address.model.ts
+│   │   ├── harvest.model.ts
 │   │   ├── index.ts
+│   │   ├── loan.model.ts
+│   │   ├── phone.model.ts
+│   │   ├── token.model.ts
+│   │   ├── transaction.model.ts
 │   │   └── user.model.ts
 │   ├── repositories
+│   │   ├── address.repository.ts
+│   │   ├── harvest.repository.ts
+│   │   ├── index.ts
+│   │   ├── loan.repository.ts
+│   │   ├── phone.repository.ts
+│   │   ├── token.repository.ts
+│   │   ├── transaction.repository.ts
+│   │   └── user.repository.ts
 │   ├── routes
+│   │   ├── address.routes.ts
 │   │   ├── auth.routes.ts
+│   │   ├── harvest.routes.ts
 │   │   ├── health.routes.ts
 │   │   ├── index.ts
+│   │   ├── loan.routes.ts
+│   │   ├── phone.routes.ts
+│   │   ├── token.routes.ts
+│   │   ├── transaction.routes.ts
 │   │   └── user.routes.ts
+│   ├── seeders
+│   │   └── 20230827100000-loan-seeds.js
 │   ├── server.ts
 │   ├── services
+│   │   ├── address.service.ts
 │   │   ├── auth.service.ts
+│   │   ├── harvest.service.ts
 │   │   ├── index.ts
+│   │   ├── loan.service.ts
+│   │   ├── phone.service.ts
+│   │   ├── token.service.ts
+│   │   ├── transaction.service.ts
 │   │   └── user.service.ts
 │   ├── tests
 │   │   ├── controllers
+│   │   │   ├── address.controller.test.ts
 │   │   │   ├── auth.controller.test.ts
+│   │   │   ├── harvest.controller.test.ts
+│   │   │   ├── phone.controller.test.ts
 │   │   │   └── user.controller.test.ts
+│   │   ├── integration
+│   │   │   └── harvest.test.ts
+│   │   ├── repositories
+│   │   │   └── harvest.repository.test.ts
 │   │   ├── services
+│   │   │   ├── address.service.test.ts
 │   │   │   ├── auth.service.test.ts
+│   │   │   ├── harvest.service.test.ts
+│   │   │   ├── phone.service.test.ts
 │   │   │   └── user.service.test.ts
 │   │   ├── setup.ts
-│   │   └── test-utils.ts
+│   │   ├── test-utils.ts
+│   │   └── validation
+│   │       └── harvest.validation.test.ts
 │   ├── types
 │   │   ├── express-list-endpoints.d.ts
 │   │   ├── jest.d.ts
@@ -70,9 +145,17 @@ Project Folder Structure:
 │   │   ├── errorUtils.ts
 │   │   ├── jwt.util.ts
 │   │   ├── logger.ts
+│   │   ├── responseUtil.ts
 │   │   ├── swagger.js
 │   │   ├── swagger.ts
 │   │   └── validateEnv.ts
+│   ├── validation
+│   │   ├── harvest.validation.ts
+│   │   ├── loan.validation.ts
+│   │   ├── token.validation.ts
+│   │   └── transaction.validation.ts
+│   ├── validations
 │   └── validators
+├── ts-path-resolver.js
 ├── tsconfig.json
 └── tsconfig.node.json
