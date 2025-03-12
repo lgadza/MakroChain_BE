@@ -1,6 +1,40 @@
 import { jest, expect, describe, it, beforeEach } from "@jest/globals";
+
+// First setup Jest mocks before importing modules
+// Mock repository functions
+const mockFindByUserId = jest.fn();
+const mockFindById = jest.fn();
+const mockCreate = jest.fn();
+const mockUpdate = jest.fn();
+const mockDelete = jest.fn();
+const mockSetAsDefault = jest.fn();
+const mockVerifyUserOwnership = jest.fn();
+
+// Create the repository mock object
+const mockAddressRepository = {
+  findByUserId: mockFindByUserId,
+  findById: mockFindById,
+  create: mockCreate,
+  update: mockUpdate,
+  delete: mockDelete,
+  setAsDefault: mockSetAsDefault,
+  verifyUserOwnership: mockVerifyUserOwnership,
+};
+
+// Mock the logger
+jest.mock("../../utils/logger.js", () => ({
+  error: jest.fn(),
+  info: jest.fn(),
+}));
+
+// Mock the repository module - this needs to be before importing the service
+jest.mock(
+  "../../repositories/address.repository.js",
+  () => mockAddressRepository
+);
+
+// Now import the service
 import { AddressService } from "../../services/address.service.js";
-import AddressRepository from "../../repositories/address.repository.js";
 
 // Define interfaces to ensure type safety
 interface Address {
@@ -63,40 +97,6 @@ interface AddressRepositoryMethods {
   setAsDefault(id: string, userId: string): Promise<boolean>;
   verifyUserOwnership(userId: string, addressId: string): Promise<boolean>;
 }
-
-// Mock the AddressRepository with explicit typing and return types
-const mockAddressRepository = {
-  findByUserId:
-    jest.fn<
-      (
-        userId: string,
-        options?: AddressQueryOptions
-      ) => Promise<PaginatedResult<Address>>
-    >(),
-  findById: jest.fn<(id: string) => Promise<Address | null>>(),
-  create:
-    jest.fn<
-      (data: Partial<Address> & { userId: string }) => Promise<Address>
-    >(),
-  update:
-    jest.fn<
-      (id: string, data: Partial<Address>) => Promise<[number, Address[]]>
-    >(),
-  delete: jest.fn<(id: string) => Promise<number>>(),
-  setAsDefault: jest.fn<(id: string, userId: string) => Promise<boolean>>(),
-  verifyUserOwnership:
-    jest.fn<(userId: string, addressId: string) => Promise<boolean>>(),
-};
-
-jest.mock(
-  "../../repositories/address.repository.js",
-  () => mockAddressRepository
-);
-
-jest.mock("../../utils/logger.js", () => ({
-  error: jest.fn(),
-  info: jest.fn(),
-}));
 
 describe("AddressService", () => {
   let addressService: AddressService & AddressServiceMethods;

@@ -1,12 +1,4 @@
-import {
-  jest,
-  expect,
-  describe,
-  it,
-  beforeEach,
-} from "../../tests/test-utils.js";
-import { UserService } from "../../services/user.service.js";
-import User from "../../models/user.model.js";
+import { jest, expect, describe, it, beforeEach } from "@jest/globals";
 import { Op } from "sequelize";
 
 // Define interfaces to ensure type safety
@@ -21,6 +13,34 @@ interface UserData {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Define the type of our mock model with all needed methods
+interface MockUserModel {
+  findByPk: jest.Mock;
+  findAndCountAll: jest.Mock;
+}
+
+// Create mock functions before using them in the jest.mock call
+const mockUserFunctions = {
+  findByPk: jest.fn(),
+  findAndCountAll: jest.fn(),
+};
+
+// Mock dependencies before importing service - using pre-defined mock functions
+jest.mock("../../models/user.model.js", () => mockUserFunctions);
+
+jest.mock("../../utils/logger.js", () => ({
+  error: jest.fn(),
+  info: jest.fn(),
+}));
+
+// Now import the service and other dependencies
+import { UserService } from "../../services/user.service.js";
+
+// Get references to the mock functions
+const mockUserModel = mockUserFunctions as MockUserModel;
+const findByPkMock = mockUserModel.findByPk;
+const findAndCountAllMock = mockUserModel.findAndCountAll;
 
 interface PaginatedResult<T> {
   count: number;
@@ -56,21 +76,6 @@ interface UserServiceMethods {
     pages: number;
   }>;
 }
-
-// Create properly typed mock functions with explicit return types
-const findByPkMock = jest.fn() as jest.MockedFunction<any>;
-const findAndCountAllMock = jest.fn() as jest.MockedFunction<any>;
-
-// Mock User model with proper typing
-jest.mock("../../models/user.model.js", () => ({
-  findByPk: findByPkMock,
-  findAndCountAll: findAndCountAllMock,
-}));
-
-jest.mock("../../utils/logger.js", () => ({
-  error: jest.fn(),
-  info: jest.fn(),
-}));
 
 describe("UserService", () => {
   let userService: UserService & UserServiceMethods;

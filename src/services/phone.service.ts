@@ -132,13 +132,12 @@ export class PhoneService {
    * Update an existing phone
    */
   async updatePhone(
-    id: string,
+    phoneId: string,
     userId: string,
-    phoneData: Partial<PhoneAttributes>
+    data: Partial<PhoneAttributes>
   ): Promise<PhoneAttributes> {
     try {
-      // Check if the phone exists and belongs to the user
-      const phone = await this.phoneRepository.findById(id);
+      const phone = await this.phoneRepository.findById(phoneId);
 
       if (!phone) {
         throw createError(
@@ -148,7 +147,10 @@ export class PhoneService {
         );
       }
 
-      if (phone.userId !== userId) {
+      // Verify ownership
+      try {
+        await this.verifyPhoneOwnership(userId, phoneId);
+      } catch (error) {
         throw createError(
           403,
           "You don't have permission to update this phone number",
@@ -156,15 +158,14 @@ export class PhoneService {
         );
       }
 
-      // Check if updating to an existing phone number
-      if (phoneData.countryCode && phoneData.number) {
-        const phoneExists = await this.phoneRepository.phoneExists(
-          phoneData.countryCode,
-          phoneData.number,
-          id // exclude current phone from check
+      // Check if phone number already exists (if updating the phone number)
+      if (data.number && data.countryCode) {
+        const existingPhone = await this.phoneRepository.phoneExists(
+          data.countryCode,
+          data.number,
+          phoneId
         );
-
-        if (phoneExists) {
+        if (existingPhone) {
           throw createError(
             409,
             "Phone number already exists",
@@ -173,30 +174,20 @@ export class PhoneService {
         }
       }
 
-      // Prevent updating the userId
-      delete (phoneData as any).userId;
-      // Don't allow manual verification status changes through regular update
-      delete (phoneData as any).isVerified;
-      delete (phoneData as any).verificationCode;
-      delete (phoneData as any).verificationExpires;
-
-      const [updated, rows] = await this.phoneRepository.update(id, phoneData);
-
-      if (!updated || rows.length === 0) {
-        throw createError(
-          404,
-          "Phone number not found or could not be updated",
-          ErrorCode.RESOURCE_NOT_FOUND
-        );
+      const [_, updatedPhones] = await this.phoneRepository.update(
+        phoneId,
+        data
+      );
+      if (!updatedPhones || updatedPhones.length === 0) {
+        throw createError(500, "Failed to update phone", ErrorCode.DB_ERROR);
       }
-
-      return rows[0];
+      return updatedPhones[0];
     } catch (error) {
       if (error instanceof Error && "statusCode" in error) {
         throw error;
       }
       logger.error(
-        `Error updating phone ${id}: ${
+        `Error updating phone ${phoneId}: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
@@ -404,8 +395,24 @@ export class PhoneService {
     phoneId: string
   ): Promise<boolean> {
     try {
-      return this.phoneRepository.verifyUserOwnership(userId, phoneId);
+      const isOwner = await this.phoneRepository.verifyUserOwnership(
+        userId,
+        phoneId
+      );
+
+      if (!isOwner) {
+        throw createError(
+          403,
+          "You do not own this phone number",
+          ErrorCode.RESOURCE_ACCESS_DENIED
+        );
+      }
+
+      return true;
     } catch (error) {
+      if (error instanceof Error && "statusCode" in error) {
+        throw error;
+      }
       logger.error(
         `Error verifying phone ownership: ${
           error instanceof Error ? error.message : "Unknown error"

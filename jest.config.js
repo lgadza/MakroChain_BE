@@ -9,11 +9,8 @@ export default {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       useESM: true,
-      // No other ts-jest config here - all moved to transformOptions
+      isolatedModules: true,
     }],
-  },
-  transformOptions: {
-    useESM: true,
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],

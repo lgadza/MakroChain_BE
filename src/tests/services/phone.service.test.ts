@@ -1,12 +1,40 @@
-import {
-  jest,
-  expect,
-  describe,
-  it,
-  beforeEach,
-} from "../../tests/test-utils.js";
+import { jest, expect, describe, it, beforeEach } from "@jest/globals";
+
+// Define mock functions first
+const mockFindByUserId = jest.fn();
+const mockFindById = jest.fn();
+const mockPhoneExists = jest.fn();
+const mockCreate = jest.fn();
+const mockUpdate = jest.fn();
+const mockDelete = jest.fn();
+const mockSetAsDefault = jest.fn();
+const mockGenerateVerificationCode = jest.fn();
+const mockVerifyPhone = jest.fn();
+const mockVerifyUserOwnership = jest.fn();
+
+// Create the repository mock object
+const mockPhoneRepository = {
+  findByUserId: mockFindByUserId,
+  findById: mockFindById,
+  phoneExists: mockPhoneExists,
+  create: mockCreate,
+  update: mockUpdate,
+  delete: mockDelete,
+  setAsDefault: mockSetAsDefault,
+  generateVerificationCode: mockGenerateVerificationCode,
+  verifyPhone: mockVerifyPhone,
+  verifyUserOwnership: mockVerifyUserOwnership,
+};
+
+// Mock external dependencies
+jest.mock("../../repositories/phone.repository.js", () => mockPhoneRepository);
+jest.mock("../../utils/logger.js", () => ({
+  error: jest.fn(),
+  info: jest.fn(),
+}));
+
+// Now import the service
 import { PhoneService } from "../../services/phone.service.js";
-import PhoneRepository from "../../repositories/phone.repository.js";
 
 // Define interfaces to ensure type safety
 interface Phone {
@@ -76,44 +104,6 @@ interface PhoneRepositoryMethods {
   verifyPhone(id: string, code: string): Promise<boolean>;
   verifyUserOwnership(userId: string, phoneId: string): Promise<boolean>;
 }
-
-// Mock the PhoneRepository with explicit typing and return types
-const mockPhoneRepository = {
-  findByUserId:
-    jest.fn<
-      (
-        userId: string,
-        options?: PhoneQueryOptions
-      ) => Promise<PaginatedResult<Phone>>
-    >(),
-  findById: jest.fn<(id: string) => Promise<Phone | null>>(),
-  phoneExists:
-    jest.fn<
-      (
-        countryCode: string,
-        number: string,
-        excludeId?: string
-      ) => Promise<boolean>
-    >(),
-  create:
-    jest.fn<(data: Partial<Phone> & { userId: string }) => Promise<Phone>>(),
-  update:
-    jest.fn<(id: string, data: Partial<Phone>) => Promise<[number, Phone[]]>>(),
-  delete: jest.fn<(id: string) => Promise<number>>(),
-  setAsDefault: jest.fn<(id: string, userId: string) => Promise<boolean>>(),
-  generateVerificationCode: jest.fn<(id: string) => Promise<string>>(),
-  verifyPhone: jest.fn<(id: string, code: string) => Promise<boolean>>(),
-  verifyUserOwnership:
-    jest.fn<(userId: string, phoneId: string) => Promise<boolean>>(),
-};
-
-// Replace the previous mock with our new typed mock
-jest.mock("../../repositories/phone.repository.js", () => mockPhoneRepository);
-
-jest.mock("../../utils/logger.js", () => ({
-  error: jest.fn(),
-  info: jest.fn(),
-}));
 
 describe("PhoneService", () => {
   let phoneService: PhoneService & PhoneServiceMethods;

@@ -103,8 +103,8 @@ describe("AuthController", () => {
     mockNext = jest.fn();
   });
 
-  describe("register", () => {
-    it("should register a user and return user data with tokens", async () => {
+  describe("User Registration", () => {
+    it("should successfully register a new user and return user data with tokens", async () => {
       // Setup
       const registerData = {
         email: "new@example.com",
@@ -148,7 +148,7 @@ describe("AuthController", () => {
       });
     });
 
-    it("should handle registration errors", async () => {
+    it("should handle error when registering with an existing email", async () => {
       // Setup
       const registerData = {
         email: "existing@example.com",
@@ -176,256 +176,273 @@ describe("AuthController", () => {
     });
   });
 
-  describe("login", () => {
-    it("should login a user and return user data with tokens", async () => {
-      // Setup
-      const loginData = {
-        email: "test@example.com",
-        password: "Password123!",
-      };
+  describe("User Authentication", () => {
+    describe("login", () => {
+      it("should successfully login a user and return user data with tokens", async () => {
+        // Setup
+        const loginData = {
+          email: "test@example.com",
+          password: "Password123!",
+        };
 
-      mockRequest.body = loginData;
+        mockRequest.body = loginData;
 
-      const loginResult = {
-        user: mockUser,
-        tokens: mockTokens,
-      };
+        const loginResult = {
+          user: mockUser,
+          tokens: mockTokens,
+        };
 
-      mockAuthService.login.mockResolvedValue(loginResult);
+        mockAuthService.login.mockResolvedValue(loginResult);
 
-      // Execute
-      await authController.login(
-        mockRequest as Request,
-        mockResponse as Response,
-        mockNext
-      );
+        // Execute
+        await authController.login(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
 
-      // Assert
-      expect(mockAuthService.login).toHaveBeenCalledWith(loginData);
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        message: "Login successful",
-        data: {
-          user: loginResult.user,
-          tokens: loginResult.tokens,
+        // Assert
+        expect(mockAuthService.login).toHaveBeenCalledWith(loginData);
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: true,
+          message: "Login successful",
+          data: {
+            user: loginResult.user,
+            tokens: loginResult.tokens,
+          },
+        });
+      });
+
+      it("should handle invalid credentials during login", async () => {
+        // Setup
+        const loginData = {
+          email: "test@example.com",
+          password: "WrongPassword",
+        };
+
+        mockRequest.body = loginData;
+
+        // Execute
+        await authController.login(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
+
+        // Assert
+        expect(mockNext).toHaveBeenCalled();
+        const passedError = mockNext.mock.calls[0][0];
+      });
+    });
+
+    describe("refreshToken", () => {
+      it("should successfully refresh tokens and return new tokens", async () => {
+        // Setup
+        mockRequest.body = { refreshToken: "valid-refresh-token" };
+
+        mockAuthService.refreshToken.mockResolvedValue(mockTokens);
+
+        // Execute
+        await authController.refreshToken(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
+
+        // Assert
+        expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
+          "valid-refresh-token"
+        );
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: true,
+          message: "Token refreshed successfully",
+          data: { tokens: mockTokens },
+        });
+      });
+
+      describe.each([
+        {
+          scenario: "missing refresh token",
+          body: {},
+          expectedError: ErrorFactory.badRequest("Refresh token is required"),
+          shouldCallService: false,
         },
-      });
+        {
+          scenario: "invalid refresh token",
+          body: { refreshToken: "invalid-refresh-token" },
+          expectedError: ErrorFactory.unauthorized("Invalid refresh token"),
+          shouldCallService: true,
+          serviceError: ErrorFactory.unauthorized("Invalid refresh token"),
+        },
+      ])(
+        "when $scenario",
+        ({ body, expectedError, shouldCallService, serviceError }) => {
+          it(`should handle ${
+            body.refreshToken ? "invalid" : "missing"
+          } refresh token appropriately`, async () => {
+            // Setup
+            mockRequest.body = body;
+
+            if (serviceError) {
+              mockAuthService.refreshToken.mockRejectedValue(serviceError);
+            }
+
+            // Execute
+            await authController.refreshToken(
+              mockRequest as Request,
+              mockResponse as Response,
+              mockNext
+            );
+
+            // Assert
+            if (shouldCallService) {
+              expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
+                body.refreshToken
+              );
+            } else {
+              expect(mockAuthService.refreshToken).not.toHaveBeenCalled();
+            }
+
+            expect(mockNext).toHaveBeenCalled();
+            const passedError = mockNext.mock.calls[0][0];
+            expect(passedError).toEqual(expectedError);
+          });
+        }
+      );
     });
 
-    it("should handle login errors", async () => {
-      // Setup
-      const loginData = {
-        email: "test@example.com",
-        password: "WrongPassword",
-      };
+    describe("logout", () => {
+      it("should successfully logout a user and return success message", async () => {
+        // Setup
+        mockAuthService.logout.mockResolvedValue(undefined);
 
-      mockRequest.body = loginData;
+        // Execute
+        await authController.logout(
+          mockAuthRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
 
-      // Execute
-      await authController.login(
-        mockRequest as Request,
-        mockResponse as Response,
-        mockNext
-      );
+        // Assert
+        expect(mockAuthService.logout).toHaveBeenCalledWith("123");
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: true,
+          message: "Logged out successfully",
+          data: null,
+        });
+      });
 
-      // Assert
-      expect(mockNext).toHaveBeenCalled();
-      const passedError = mockNext.mock.calls[0][0];
+      it("should handle unauthenticated user during logout attempt", async () => {
+        // Setup
+        const unauthRequest: Partial<AuthenticatedRequest> = {
+          ...mockRequest,
+          user: undefined,
+        };
+
+        const error = ErrorFactory.unauthorized("Authentication required");
+
+        // Execute
+        await authController.logout(
+          unauthRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        // Assert
+        expect(mockAuthService.logout).not.toHaveBeenCalled();
+        expect(mockNext).toHaveBeenCalled();
+        const passedError = mockNext.mock.calls[0][0];
+        expect(passedError).toEqual(error);
+      });
+
+      it("should handle server errors during logout process", async () => {
+        // Setup
+        const error = ErrorFactory.internal("Logout failed");
+        mockAuthService.logout.mockImplementation(() => Promise.reject(error));
+
+        // Execute
+        await authController.logout(
+          mockAuthRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        // Assert
+        expect(mockNext).toHaveBeenCalled();
+        const passedError = mockNext.mock.calls[0][0];
+        expect(passedError).toEqual(error);
+      });
     });
   });
 
-  describe("refreshToken", () => {
-    it("should refresh tokens and return new tokens", async () => {
-      // Setup
-      mockRequest.body = { refreshToken: "valid-refresh-token" };
+  describe("User Profile", () => {
+    describe("getCurrentUser", () => {
+      it("should successfully return current authenticated user profile", async () => {
+        // Setup
+        mockAuthService.getUserById.mockResolvedValue(mockUser);
 
-      mockAuthService.refreshToken.mockResolvedValue(mockTokens);
+        // Execute
+        await authController.getCurrentUser(
+          mockAuthRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
 
-      // Execute
-      await authController.refreshToken(
-        mockRequest as Request,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
-        "valid-refresh-token"
-      );
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        message: "Token refreshed successfully",
-        data: { tokens: mockTokens },
+        // Assert
+        expect(mockAuthService.getUserById).toHaveBeenCalledWith("123");
+        expect(mockResponse.status).toHaveBeenCalledWith(200);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          success: true,
+          data: { user: mockUser },
+          message: "Success",
+        });
       });
-    });
 
-    it("should handle missing refresh token", async () => {
-      // Setup
-      mockRequest.body = {};
-      const error = ErrorFactory.badRequest("Refresh token is required");
+      it("should handle unauthenticated user when requesting profile", async () => {
+        // Setup
+        const unauthRequest: Partial<AuthenticatedRequest> = {
+          ...mockRequest,
+          user: undefined,
+        };
 
-      // Execute
-      await authController.refreshToken(
-        mockRequest as Request,
-        mockResponse as Response,
-        mockNext
-      );
+        const error = ErrorFactory.unauthorized("Authentication required");
 
-      // Assert
-      expect(mockAuthService.refreshToken).not.toHaveBeenCalled();
-      expect(mockNext).toHaveBeenCalled();
-      const passedError = mockNext.mock.calls[0][0];
-      expect(passedError).toEqual(error);
-    });
+        // Execute
+        await authController.getCurrentUser(
+          unauthRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
 
-    it("should handle invalid refresh token", async () => {
-      // Setup
-      mockRequest.body = { refreshToken: "invalid-refresh-token" };
-
-      const error = ErrorFactory.unauthorized("Invalid refresh token");
-      mockAuthService.refreshToken.mockRejectedValue(error);
-
-      // Execute
-      await authController.refreshToken(
-        mockRequest as Request,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockNext).toHaveBeenCalled();
-      const passedError = mockNext.mock.calls[0][0];
-      expect(passedError).toEqual(error);
-    });
-  });
-
-  describe("logout", () => {
-    it("should logout a user and return success message", async () => {
-      // Setup
-      mockAuthService.logout.mockResolvedValue(undefined);
-
-      // Execute
-      await authController.logout(
-        mockAuthRequest as AuthenticatedRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockAuthService.logout).toHaveBeenCalledWith("123");
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        message: "Logged out successfully",
+        // Assert
+        expect(mockAuthService.getUserById).not.toHaveBeenCalled();
+        expect(mockNext).toHaveBeenCalled();
+        const passedError = mockNext.mock.calls[0][0];
+        expect(passedError).toEqual(error);
       });
-    });
 
-    it("should handle unauthenticated user", async () => {
-      // Setup
-      const unauthRequest: Partial<AuthenticatedRequest> = {
-        ...mockRequest,
-        user: undefined,
-      };
+      it("should handle database errors when retrieving user profile", async () => {
+        // Setup
+        const error = ErrorFactory.internal(
+          "Failed to retrieve user information"
+        );
+        mockAuthService.getUserById.mockRejectedValue(error);
 
-      const error = ErrorFactory.unauthorized("Authentication required");
+        // Execute
+        await authController.getCurrentUser(
+          mockAuthRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
 
-      // Execute
-      await authController.logout(
-        unauthRequest as AuthenticatedRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockAuthService.logout).not.toHaveBeenCalled();
-      expect(mockNext).toHaveBeenCalled();
-      const passedError = mockNext.mock.calls[0][0];
-      expect(passedError).toEqual(error);
-    });
-
-    it("should handle logout errors", async () => {
-      // Setup
-      const error = ErrorFactory.internal("Logout failed");
-      mockAuthService.logout.mockImplementation(() => Promise.reject(error));
-
-      // Execute
-      await authController.logout(
-        mockAuthRequest as AuthenticatedRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockNext).toHaveBeenCalled();
-      const passedError = mockNext.mock.calls[0][0];
-      expect(passedError).toEqual(error);
-    });
-  });
-
-  describe("getCurrentUser", () => {
-    it("should return current authenticated user", async () => {
-      // Setup
-      mockAuthService.getUserById.mockResolvedValue(mockUser);
-
-      // Execute
-      await authController.getCurrentUser(
-        mockAuthRequest as AuthenticatedRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockAuthService.getUserById).toHaveBeenCalledWith("123");
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        data: { user: mockUser },
+        // Assert
+        expect(mockNext).toHaveBeenCalled();
+        const passedError = mockNext.mock.calls[0][0];
+        expect(passedError).toEqual(error);
       });
-    });
-
-    it("should handle unauthenticated user", async () => {
-      // Setup
-      const unauthRequest: Partial<AuthenticatedRequest> = {
-        ...mockRequest,
-        user: undefined,
-      };
-
-      const error = ErrorFactory.unauthorized("Authentication required");
-
-      // Execute
-      await authController.getCurrentUser(
-        unauthRequest as AuthenticatedRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockAuthService.getUserById).not.toHaveBeenCalled();
-      expect(mockNext).toHaveBeenCalled();
-      const passedError = mockNext.mock.calls[0][0];
-      expect(passedError).toEqual(error);
-    });
-
-    it("should handle get user errors", async () => {
-      // Setup
-      const error = ErrorFactory.internal(
-        "Failed to retrieve user information"
-      );
-      mockAuthService.getUserById.mockRejectedValue(error);
-
-      // Execute
-      await authController.getCurrentUser(
-        mockAuthRequest as AuthenticatedRequest,
-        mockResponse as Response,
-        mockNext
-      );
-
-      // Assert
-      expect(mockNext).toHaveBeenCalled();
-      const passedError = mockNext.mock.calls[0][0];
-      expect(passedError).toEqual(error);
     });
   });
 });
