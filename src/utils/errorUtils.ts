@@ -9,27 +9,94 @@ import {
   InternalServerError,
   ForbiddenError,
 } from "../middleware/errorHandler.js";
-import { ErrorCodeType } from "../constants/errorCodes.js";
+import { ErrorCode, ErrorCodeType } from "../constants/errorCodes.js";
 
 /**
- * Custom error class with HTTP status code
+ * Custom HTTP error class that extends Error
  */
 export class HttpError extends Error {
   statusCode: number;
+  code?: ErrorCodeType;
+  details?: any;
 
-  constructor(statusCode: number, message: string) {
+  constructor(
+    statusCode: number,
+    message: string,
+    errorCode?: ErrorCodeType,
+    details?: any
+  ) {
     super(message);
-    this.statusCode = statusCode;
     this.name = this.constructor.name;
+    this.statusCode = statusCode;
+    this.code = errorCode;
+    this.details = details;
+
+    // This is for capturing proper stack trace in NodeJS
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
 /**
- * Create a new HttpError with the specified status code and message
+ * Create a new HttpError
+ * @param statusCode - HTTP status code
+ * @param message - Error message
+ * @param errorCode - Optional error code from ErrorCode enum
+ * @param details - Optional error details
+ * @returns HttpError instance
  */
-export const createError = (statusCode: number, message: string): HttpError => {
-  return new HttpError(statusCode, message);
+export const createError = (
+  statusCode: number,
+  message: string,
+  errorCode?: ErrorCodeType,
+  details?: any
+): HttpError => {
+  return new HttpError(statusCode, message, errorCode, details);
+};
+
+/**
+ * Create a not found error
+ * @param message - Error message
+ * @returns HttpError instance
+ */
+export const createNotFoundError = (
+  message = "Resource not found"
+): HttpError => {
+  return createError(404, message, ErrorCode.RESOURCE_NOT_FOUND);
+};
+
+/**
+ * Create an unauthorized error
+ * @param message - Error message
+ * @returns HttpError instance
+ */
+export const createUnauthorizedError = (
+  message = "Unauthorized access"
+): HttpError => {
+  return createError(401, message, ErrorCode.INVALID_CREDENTIALS);
+};
+
+/**
+ * Create a forbidden error
+ * @param message - Error message
+ * @returns HttpError instance
+ */
+export const createForbiddenError = (
+  message = "Access forbidden"
+): HttpError => {
+  return createError(403, message, ErrorCode.INSUFFICIENT_PERMISSIONS);
+};
+
+/**
+ * Create a validation error
+ * @param message - Error message
+ * @param details - Error details
+ * @returns HttpError instance
+ */
+export const createValidationError = (
+  message = "Validation failed",
+  details?: any
+): HttpError => {
+  return createError(400, message, ErrorCode.VALIDATION_ERROR, details);
 };
 
 /**

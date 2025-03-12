@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import config from "../config/index.js";
 import { Roles } from "../constants/roles.js";
 
-interface UserAttributes {
+export interface UserAttributes {
   id: string;
   username: string;
   email: string;
@@ -20,7 +20,7 @@ interface UserAttributes {
   updatedAt: Date;
 }
 
-interface UserCreationAttributes
+export interface UserCreationAttributes
   extends Optional<
     UserAttributes,
     | "id"

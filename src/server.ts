@@ -4,8 +4,8 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import compression from "compression";
 import swaggerUi from "swagger-ui-express";
-import { rateLimit } from "express-rate-limit";
 import listEndpoints from "express-list-endpoints";
 import Table from "cli-table3";
 import chalk from "chalk";
@@ -21,26 +21,44 @@ import config from "./config/index.js";
 const app = express();
 const logger = setupLogger();
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 // Middleware
 applyHelmetMiddleware(app);
-app.use(cors());
-app.use(express.json());
-app.use(morgan("combined"));
-app.use(limiter);
+
+// Configure CORS with more specific settings
+app.use(
+  cors({
+    origin: config.corsOrigins || "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
+// Body parser with size limits
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+// Add compression for responses
+app.use(compression());
+
+// Configure detailed request logging
+app.use(
+  morgan("combined", {
+    skip: (req, res) => res.statusCode < 400, // Only log errors in production
+    stream: {
+      write: (message) => logger.http(message.trim()),
+    },
+  })
+);
+
+// Apply rate limiter
+app.use(apiLimiter);
 
 // Swagger API Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
-app.use("/api", routes);
+app.use("/api/v1", routes);
 
 // Error handling
 app.use(errorHandler);

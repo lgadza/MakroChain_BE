@@ -23,15 +23,21 @@ const config = {
     expiresIn: process.env.JWT_EXPIRES_IN || "1d",
   },
 
+  // Rate limiting configuration
+  rateLimit: {
+    standard: parseInt(process.env.RATE_LIMIT_STANDARD || "100"),
+    auth: parseInt(process.env.RATE_LIMIT_AUTH || "10"),
+    createAccount: parseInt(process.env.RATE_LIMIT_CREATE_ACCOUNT || "5"),
+  },
+
+  // CORS configuration
+  corsOrigins: process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",")
+    : "*",
+
   // Logging
   logging: {
     level: process.env.LOG_LEVEL || "info",
-  },
-
-  // Rate limiting
-  rateLimit: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX || "100"), // max requests per windowMs
   },
 };
 

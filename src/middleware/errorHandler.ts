@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import logger from "../utils/logger.js";
+import { HttpError } from "../utils/errorUtils.js";
 import {
   ErrorCode,
   ErrorCodeType,
@@ -125,7 +126,7 @@ export class InternalServerError extends AppError {
  * Global error handling middleware
  */
 export const errorHandler = (
-  err: Error | AppError,
+  err: Error | AppError | HttpError,
   req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -137,8 +138,17 @@ export const errorHandler = (
   let errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
   let details: unknown;
 
+  // Handle HttpError instance (from createError utility)
+  if (err instanceof HttpError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    errorCode =
+      (err.code as unknown as ErrorCode) ||
+      (HTTP_STATUS_TO_ERROR_CODE[statusCode] as ErrorCode);
+    details = err.details;
+  }
   // If it's our custom AppError, use its properties
-  if (err instanceof AppError) {
+  else if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
     errorCode =
@@ -162,11 +172,12 @@ export const errorHandler = (
 
   // Prepare response object
   const errorResponse = {
-    status: "error",
-    statusCode,
+    success: false,
     message,
-    errorCode,
-    ...(details ? { details } : {}),
+    error: {
+      code: errorCode,
+      ...(details ? { details } : {}),
+    },
     // Only include stack in development mode
     ...(process.env.NODE_ENV === "development" && err.stack
       ? { stack: err.stack }

@@ -40,7 +40,8 @@ describe("UserService", () => {
       const mockCount = 25;
       const mockRows = [mockUserData, { ...mockUserData, id: "456" }];
 
-      (User.findAndCountAll as jest.Mock).mockResolvedValue({
+      // Use proper typing for the mock
+      (User.findAndCountAll as jest.Mock).mockResolvedValueOnce({
         count: mockCount,
         rows: mockRows,
       });
@@ -73,7 +74,8 @@ describe("UserService", () => {
     });
 
     it("should throw an error when database query fails", async () => {
-      (User.findAndCountAll as jest.Mock).mockRejectedValue(
+      // Use proper typing for the mock
+      (User.findAndCountAll as jest.Mock).mockRejectedValueOnce(
         new Error("Database error")
       );
 
@@ -85,7 +87,7 @@ describe("UserService", () => {
 
   describe("getUserById", () => {
     it("should return a user when valid ID is provided", async () => {
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUserData);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUserData);
 
       const result = await userService.getUserById("123");
 
@@ -106,7 +108,7 @@ describe("UserService", () => {
     });
 
     it("should throw an error when user is not found", async () => {
-      (User.findByPk as jest.Mock).mockResolvedValue(null);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(userService.getUserById("nonexistentId")).rejects.toThrow(
         "User not found"
@@ -128,11 +130,11 @@ describe("UserService", () => {
         updatedAt: new Date(),
         update: jest.fn().mockImplementation(function (this: any, data: any) {
           Object.assign(this, data);
-          return Promise.resolve();
+          return Promise.resolve(this);
         }),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       const updateData = { firstName: "Jane", lastName: "Smith" };
       const result = await userService.updateUser("123", updateData);
@@ -154,7 +156,7 @@ describe("UserService", () => {
     });
 
     it("should throw an error when user is not found", async () => {
-      (User.findByPk as jest.Mock).mockResolvedValue(null);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(userService.updateUser("nonexistentId", {})).rejects.toThrow(
         "User not found"
@@ -164,10 +166,10 @@ describe("UserService", () => {
     it("should throw an error when invalid role is provided", async () => {
       const mockUser = {
         id: "123",
-        update: jest.fn(),
+        update: jest.fn().mockResolvedValueOnce(undefined),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       await expect(
         userService.updateUser("123", { role: "INVALID_ROLE" })
@@ -181,10 +183,10 @@ describe("UserService", () => {
     it("should delete a user when valid ID is provided", async () => {
       const mockUser = {
         id: "123",
-        destroy: jest.fn().mockResolvedValue(undefined),
+        destroy: jest.fn().mockResolvedValueOnce(undefined),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       await userService.deleteUser("123");
 
@@ -193,7 +195,7 @@ describe("UserService", () => {
     });
 
     it("should throw an error when user is not found", async () => {
-      (User.findByPk as jest.Mock).mockResolvedValue(null);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(userService.deleteUser("nonexistentId")).rejects.toThrow(
         "User not found"
@@ -203,10 +205,10 @@ describe("UserService", () => {
     it("should throw an error when deletion fails", async () => {
       const mockUser = {
         id: "123",
-        destroy: jest.fn().mockRejectedValue(new Error("Database error")),
+        destroy: jest.fn().mockRejectedValueOnce(new Error("Database error")),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       await expect(userService.deleteUser("123")).rejects.toThrow(
         "Failed to delete user"
@@ -218,10 +220,10 @@ describe("UserService", () => {
     it("should set isActive to false", async () => {
       const mockUser = {
         id: "123",
-        update: jest.fn().mockResolvedValue(undefined),
+        update: jest.fn().mockResolvedValueOnce(undefined),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       await userService.deactivateUser("123");
 
@@ -230,7 +232,7 @@ describe("UserService", () => {
     });
 
     it("should throw an error when user is not found", async () => {
-      (User.findByPk as jest.Mock).mockResolvedValue(null);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(userService.deactivateUser("nonexistentId")).rejects.toThrow(
         "User not found"
@@ -242,10 +244,10 @@ describe("UserService", () => {
     it("should set isActive to true", async () => {
       const mockUser = {
         id: "123",
-        update: jest.fn().mockResolvedValue(undefined),
+        update: jest.fn().mockResolvedValueOnce(undefined),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       await userService.activateUser("123");
 
@@ -254,7 +256,7 @@ describe("UserService", () => {
     });
 
     it("should throw an error when user is not found", async () => {
-      (User.findByPk as jest.Mock).mockResolvedValue(null);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(userService.activateUser("nonexistentId")).rejects.toThrow(
         "User not found"
@@ -266,11 +268,11 @@ describe("UserService", () => {
     it("should update password when current password is correct", async () => {
       const mockUser = {
         id: "123",
-        comparePassword: jest.fn().mockResolvedValue(true),
-        update: jest.fn().mockResolvedValue(undefined),
+        comparePassword: jest.fn().mockResolvedValueOnce(true),
+        update: jest.fn().mockResolvedValueOnce(undefined),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       await userService.changePassword("123", "currentPass", "newPass");
 
@@ -280,7 +282,7 @@ describe("UserService", () => {
     });
 
     it("should throw an error when user is not found", async () => {
-      (User.findByPk as jest.Mock).mockResolvedValue(null);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(null);
 
       await expect(
         userService.changePassword("nonexistentId", "currentPass", "newPass")
@@ -290,11 +292,11 @@ describe("UserService", () => {
     it("should throw an error when current password is incorrect", async () => {
       const mockUser = {
         id: "123",
-        comparePassword: jest.fn().mockResolvedValue(false),
-        update: jest.fn(),
+        comparePassword: jest.fn().mockResolvedValueOnce(false),
+        update: jest.fn().mockResolvedValueOnce(undefined),
       };
 
-      (User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+      (User.findByPk as jest.Mock).mockResolvedValueOnce(mockUser);
 
       await expect(
         userService.changePassword("123", "wrongPass", "newPass")
@@ -309,7 +311,7 @@ describe("UserService", () => {
       const mockCount = 2;
       const mockRows = [mockUserData, { ...mockUserData, id: "456" }];
 
-      (User.findAndCountAll as jest.Mock).mockResolvedValue({
+      (User.findAndCountAll as jest.Mock).mockResolvedValueOnce({
         count: mockCount,
         rows: mockRows,
       });
@@ -347,9 +349,7 @@ describe("UserService", () => {
     });
 
     it("should throw an error when search fails", async () => {
-      (User.findAndCountAll as jest.Mock).mockRejectedValue(
-        new Error("Database error")
-      );
+      (User.findAndCountAll as jest.Mock).mockRejectedValueOnce(
 
       await expect(userService.searchUsers("John")).rejects.toThrow(
         "Failed to search users"

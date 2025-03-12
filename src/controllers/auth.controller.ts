@@ -5,6 +5,7 @@ import { AuthService } from "../services/auth.service.js";
 import { LoginDto, RegisterDto } from "../dto/auth.dto.js";
 import { AuthenticatedRequest } from "../middleware/authMiddleware.js";
 import { sendSuccess } from "../utils/responseUtil.js";
+import { ErrorCode } from "../constants/errorCodes.js";
 
 export class AuthController {
   private authService: AuthService;
@@ -74,10 +75,16 @@ export class AuthController {
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+
+      // Always use 401 for login failures, not 500
       next(
         error instanceof Error
-          ? createError(401, error.message)
-          : createError(500, "Login failed")
+          ? createError(401, error.message, ErrorCode.INVALID_CREDENTIALS)
+          : createError(
+              401,
+              "Invalid credentials",
+              ErrorCode.INVALID_CREDENTIALS
+            )
       );
     }
   };
@@ -94,7 +101,13 @@ export class AuthController {
       const { refreshToken } = req.body;
 
       if (!refreshToken) {
-        next(createError(400, "Refresh token is required"));
+        next(
+          createError(
+            400,
+            "Refresh token is required",
+            ErrorCode.MISSING_REQUIRED_FIELD
+          )
+        );
         return;
       }
 
@@ -109,8 +122,8 @@ export class AuthController {
       );
       next(
         error instanceof Error
-          ? createError(401, error.message)
-          : createError(500, "Token refresh failed")
+          ? createError(401, error.message, ErrorCode.INVALID_TOKEN)
+          : createError(401, "Token refresh failed", ErrorCode.INVALID_TOKEN)
       );
     }
   };
