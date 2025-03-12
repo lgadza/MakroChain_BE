@@ -64,6 +64,8 @@ export const sequelize = initializeSequelize();
 
 // Initialize models (will be expanded as more models are added)
 import UserModel, { initUser } from "./user.model.js";
+import { initAddress, initAddressAssociations } from "./address.model.js";
+import { initPhone, initPhoneAssociations } from "./phone.model.js";
 
 // Initialize the db object
 const db: DbInterface = {
@@ -73,12 +75,16 @@ const db: DbInterface = {
 
 // Initialize models
 db.User = initUser(sequelize, DataTypes);
+db.Address = initAddress(sequelize);
+db.Phone = initPhone(sequelize);
 
 // Add this initModels export function that's being imported by dbConnect.ts
 export const initModels = (sequelize: Sequelize) => {
   // Initialize models with the provided sequelize instance
   const models = {
     User: initUser(sequelize, DataTypes),
+    Address: initAddress(sequelize),
+    Phone: initPhone(sequelize),
   };
 
   // Set up associations
@@ -97,6 +103,9 @@ Object.keys(db).forEach((modelName) => {
     db[modelName].associate(db);
   }
 });
+
+initAddressAssociations();
+initPhoneAssociations();
 
 // Utility functions
 export const syncModels = async (force = false) => {
@@ -123,6 +132,8 @@ export const testConnection = async () => {
 // Export models for easy access
 export const models = {
   User: db.User,
+  Address: db.Address,
+  Phone: db.Phone,
 };
 
 export default db;
