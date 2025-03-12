@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { UserService } from "../services/user.service.js";
+import UserService from "../services/user.service.js"; // Import the default instance
+// OR use the named import from the index
+// import { UserService } from '../services/index.js';
 import logger from "../utils/logger.js";
 import { AuthenticatedRequest } from "../middleware/authMiddleware.js";
 import { createError } from "../utils/errorUtils.js";
@@ -7,10 +9,10 @@ import { asyncHandler } from "../utils/errorUtils.js";
 import { sendSuccess } from "../utils/responseUtil.js";
 
 export class UserController {
-  private userService: UserService;
+  private userService: typeof UserService;
 
   constructor() {
-    this.userService = new UserService();
+    this.userService = UserService;
   }
 
   /**

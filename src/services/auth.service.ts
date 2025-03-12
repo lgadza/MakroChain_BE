@@ -7,6 +7,8 @@ import {
 } from "../utils/jwt.util.js";
 import logger from "../utils/logger.js";
 import { Roles } from "../constants/roles.js";
+import UserService from "./user.service.js"; // Import the default instance
+import { IAuthService } from "../interfaces/services/auth.service.interface.js";
 
 interface AuthTokens {
   accessToken: string;
@@ -21,7 +23,7 @@ interface UserResponse {
   role: string;
 }
 
-export class AuthService {
+export class AuthService implements IAuthService {
   /**
    * Register a new user
    */
@@ -173,3 +175,6 @@ export class AuthService {
     };
   }
 }
+
+// Export a default instance
+export default new AuthService();

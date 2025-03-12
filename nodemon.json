@@ -2,7 +2,8 @@
   "execMap": {
     "ts": "node --loader ts-node/esm"
   },
-  "ext": "ts,js,json",
+  "ext": "ts",
   "ignore": ["node_modules", "dist"],
-  "watch": ["src"]
+  "watch": ["src"],
+  "exec": "node --loader ts-node/esm --require ./ts-path-resolver.js src/server.ts"
 }

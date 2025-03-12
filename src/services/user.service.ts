@@ -1,3 +1,6 @@
+import bcrypt from "bcrypt";
+import { UserRepository } from "../repositories/index.js";
+import { IUserService } from "../interfaces/services/user.service.interface.js";
 import User from "../models/user.model.js";
 import { createError } from "../utils/errorUtils.js";
 import { Roles } from "../constants/roles.js";
@@ -16,7 +19,46 @@ interface UserData {
   updatedAt: Date;
 }
 
-export class UserService {
+export class UserService implements IUserService {
+  private userRepository = UserRepository;
+
+  async getById(id: string): Promise<User | null> {
+    return this.userRepository.findById(id);
+  }
+
+  async getByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findByEmail(email);
+  }
+
+  async create(userData: Partial<User>): Promise<User> {
+    // Hash password if provided
+    if (userData.password) {
+      const salt = await bcrypt.genSalt(10);
+      userData.password = await bcrypt.hash(userData.password, salt);
+    }
+
+    return this.userRepository.create(userData);
+  }
+
+  async update(id: string, userData: Partial<User>): Promise<User | null> {
+    // Hash password if provided
+    if (userData.password) {
+      const salt = await bcrypt.genSalt(10);
+      userData.password = await bcrypt.hash(userData.password, salt);
+    }
+
+    const [affectedCount, affectedRows] = await this.userRepository.update(
+      id,
+      userData
+    );
+    return affectedCount > 0 ? affectedRows[0] : null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const deletedCount = await this.userRepository.delete(id);
+    return deletedCount > 0;
+  }
+
   /**
    * Get all users with pagination
    */
@@ -244,3 +286,6 @@ export class UserService {
     }
   }
 }
+
+// Export both the class and a default singleton instance
+export default new UserService();

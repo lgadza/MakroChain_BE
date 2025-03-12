@@ -16,7 +16,7 @@ import { connectDB } from "./utils/dbConnect.js";
 import swaggerDocs from "./utils/swagger.js";
 import { applyHelmetMiddleware } from "./middleware/helmet.middleware.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
-import config from "./config/index.js";
+import config from "./config/app.config.js";
 
 const app = express();
 const logger = setupLogger();
@@ -27,7 +27,8 @@ applyHelmetMiddleware(app);
 // Configure CORS with more specific settings
 app.use(
   cors({
-    origin: config.corsOrigins || "*",
+    // Use a simple string "*" as default since config.cors doesn't exist
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -63,7 +64,7 @@ app.use("/api/v1", routes);
 // Error handling
 app.use(errorHandler);
 
-const PORT = config.port || 3000;
+const PORT = config.server.port || 3000;
 
 // Function to initialize server
 const startServer = async () => {
