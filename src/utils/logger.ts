@@ -10,7 +10,7 @@ export const setupLogger = () => {
 
   // Pretty console format for development
   const devConsoleFormat = combine(
-    colorize({ all: true }),
+    errors({ stack: true }),
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     printf(
       ({
@@ -20,7 +20,6 @@ export const setupLogger = () => {
         service = "makrochain-backend",
         ...meta
       }) => {
-        // Color the level based on severity
         const metaStr =
           Object.keys(meta).length && meta.stack !== undefined
             ? `\n${meta.stack}`
@@ -48,7 +47,14 @@ export const setupLogger = () => {
     level: logLevel,
     format: selectedFormat,
     defaultMeta: { service: "makrochain-backend" },
-    transports: [new winston.transports.Console()],
+    transports: [
+      new winston.transports.Console({
+        format: combine(
+          colorize({ all: false, level: true, message: false }),
+          selectedFormat
+        ),
+      }),
+    ],
   });
 };
 

@@ -18,6 +18,7 @@ export enum Resources {
   TRANSACTIONS = "TRANSACTIONS",
   REPORTS = "REPORTS",
   SETTINGS = "SETTINGS",
+  LOANS = "LOANS",
 }
 
 /**
@@ -30,6 +31,8 @@ export enum Permissions {
   DELETE = "DELETE",
   EXPORT = "EXPORT",
   IMPORT = "IMPORT",
+  APPROVE = "APPROVE",
+  REJECT = "REJECT",
 }
 
 /**
@@ -62,6 +65,8 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.DELETE,
       Permissions.EXPORT,
       Permissions.IMPORT,
+      Permissions.APPROVE,
+      Permissions.REJECT,
     ],
     [Resources.TRANSACTIONS]: [
       Permissions.CREATE,
@@ -69,6 +74,8 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.UPDATE,
       Permissions.DELETE,
       Permissions.EXPORT,
+      Permissions.APPROVE,
+      Permissions.REJECT,
     ],
     [Resources.REPORTS]: [
       Permissions.CREATE,
@@ -76,6 +83,15 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.EXPORT,
     ],
     [Resources.SETTINGS]: [Permissions.READ, Permissions.UPDATE],
+    [Resources.LOANS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+      Permissions.DELETE,
+      Permissions.EXPORT,
+      Permissions.APPROVE,
+      Permissions.REJECT,
+    ],
   },
   [Roles.MANAGER]: {
     [Resources.USERS]: [
@@ -89,12 +105,16 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.UPDATE,
       Permissions.DELETE,
       Permissions.EXPORT,
+      Permissions.APPROVE,
+      Permissions.REJECT,
     ],
     [Resources.TRANSACTIONS]: [
       Permissions.CREATE,
       Permissions.READ,
       Permissions.UPDATE,
       Permissions.EXPORT,
+      Permissions.APPROVE,
+      Permissions.REJECT,
     ],
     [Resources.REPORTS]: [
       Permissions.CREATE,
@@ -102,6 +122,14 @@ export const RBAC_MATRIX: RbacMatrix = {
       Permissions.EXPORT,
     ],
     [Resources.SETTINGS]: [Permissions.READ],
+    [Resources.LOANS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+      Permissions.EXPORT,
+      Permissions.APPROVE,
+      Permissions.REJECT,
+    ],
   },
   [Roles.FARMER]: {
     [Resources.USERS]: [Permissions.READ, Permissions.UPDATE],
@@ -118,6 +146,11 @@ export const RBAC_MATRIX: RbacMatrix = {
     ],
     [Resources.REPORTS]: [Permissions.READ],
     [Resources.SETTINGS]: [Permissions.READ],
+    [Resources.LOANS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+    ],
   },
   [Roles.BUYER]: {
     [Resources.USERS]: [Permissions.READ, Permissions.UPDATE],
@@ -125,6 +158,7 @@ export const RBAC_MATRIX: RbacMatrix = {
     [Resources.TRANSACTIONS]: [Permissions.CREATE, Permissions.READ],
     [Resources.REPORTS]: [],
     [Resources.SETTINGS]: [Permissions.READ],
+    [Resources.LOANS]: [],
   },
   [Roles.GUEST]: {
     [Resources.USERS]: [],
@@ -132,6 +166,7 @@ export const RBAC_MATRIX: RbacMatrix = {
     [Resources.TRANSACTIONS]: [],
     [Resources.REPORTS]: [],
     [Resources.SETTINGS]: [],
+    [Resources.LOANS]: [],
   },
 };
 

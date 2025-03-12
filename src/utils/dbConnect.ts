@@ -6,6 +6,7 @@ import { initAddress } from "../models/address.model.js";
 import { initPhone } from "../models/phone.model.js";
 import { initHarvest } from "../models/harvest.model.js";
 import { initTransaction } from "../models/transaction.model.js";
+import { initLoan } from "../models/loan.model.js";
 
 dotenv.config();
 const logger = setupLogger();
@@ -43,6 +44,7 @@ export const initializeModels = () => {
   const Address = initAddress(sequelize);
   const Phone = initPhone(sequelize);
   const Transaction = initTransaction(sequelize, DataTypes);
+  const Loan = initLoan(sequelize);
 
   // Add other model initializations here as your app grows
 
@@ -52,6 +54,7 @@ export const initializeModels = () => {
     Address,
     Phone,
     Transaction,
+    Loan,
   };
 };
 
