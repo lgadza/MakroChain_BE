@@ -1,23 +1,106 @@
-import {
-  jest,
-  expect,
-  describe,
-  it,
-  beforeEach,
-} from "../../tests/test-utils.js";
+import { jest, expect, describe, it, beforeEach } from "@jest/globals";
 import { AddressService } from "../../services/address.service.js";
 import AddressRepository from "../../repositories/address.repository.js";
 
-// Mock the AddressRepository
-jest.mock("../../repositories/address.repository.js");
+// Define interfaces to ensure type safety
+interface Address {
+  id: string;
+  userId: string;
+  addressType: string;
+  street1: string;
+  street2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+interface AddressQueryOptions {
+  addressType?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface PaginatedResult<T> {
+  count: number;
+  rows: T[];
+}
+
+interface AddressServiceMethods {
+  getUserAddresses(
+    userId: string,
+    options?: AddressQueryOptions
+  ): Promise<{
+    addresses: Address[];
+    total: number;
+    pages: number;
+  }>;
+  getAddressById(id: string): Promise<Address>;
+  createAddress(userId: string, data: Partial<Address>): Promise<Address>;
+  updateAddress(
+    id: string,
+    userId: string,
+    data: Partial<Address>
+  ): Promise<Address>;
+  deleteAddress(id: string, userId: string): Promise<void>;
+  setAddressAsDefault(id: string, userId: string): Promise<void>;
+  verifyAddressOwnership(userId: string, addressId: string): Promise<boolean>;
+}
+
+// Define repository method types for better type safety with mocks
+interface AddressRepositoryMethods {
+  findByUserId(
+    userId: string,
+    options?: AddressQueryOptions
+  ): Promise<PaginatedResult<Address>>;
+  findById(id: string): Promise<Address | null>;
+  create(data: Partial<Address> & { userId: string }): Promise<Address>;
+  update(id: string, data: Partial<Address>): Promise<[number, Address[]]>;
+  delete(id: string): Promise<number>;
+  setAsDefault(id: string, userId: string): Promise<boolean>;
+  verifyUserOwnership(userId: string, addressId: string): Promise<boolean>;
+}
+
+// Mock the AddressRepository with explicit typing and return types
+const mockAddressRepository = {
+  findByUserId:
+    jest.fn<
+      (
+        userId: string,
+        options?: AddressQueryOptions
+      ) => Promise<PaginatedResult<Address>>
+    >(),
+  findById: jest.fn<(id: string) => Promise<Address | null>>(),
+  create:
+    jest.fn<
+      (data: Partial<Address> & { userId: string }) => Promise<Address>
+    >(),
+  update:
+    jest.fn<
+      (id: string, data: Partial<Address>) => Promise<[number, Address[]]>
+    >(),
+  delete: jest.fn<(id: string) => Promise<number>>(),
+  setAsDefault: jest.fn<(id: string, userId: string) => Promise<boolean>>(),
+  verifyUserOwnership:
+    jest.fn<(userId: string, addressId: string) => Promise<boolean>>(),
+};
+
+jest.mock(
+  "../../repositories/address.repository.js",
+  () => mockAddressRepository
+);
+
 jest.mock("../../utils/logger.js", () => ({
   error: jest.fn(),
   info: jest.fn(),
 }));
 
 describe("AddressService", () => {
-  let addressService: AddressService;
-  const mockAddressData: any = {
+  let addressService: AddressService & AddressServiceMethods;
+  const mockAddressData: Address = {
     id: "123",
     userId: "user123",
     addressType: "HOME",
@@ -41,18 +124,29 @@ describe("AddressService", () => {
   describe("getUserAddresses", () => {
     it("should return paginated addresses and metadata", async () => {
       const mockCount = 3;
-      const mockRows = [mockAddressData, { ...mockAddressData, id: "456" }];
+      const mockRows: Address[] = [
+        mockAddressData,
+        { ...mockAddressData, id: "456" },
+      ];
 
-      (AddressRepository.findByUserId as jest.Mock).mockResolvedValueOnce({
+      const mockPaginatedResult: PaginatedResult<Address> = {
         count: mockCount,
         rows: mockRows,
-      });
+      };
+
+      mockAddressRepository.findByUserId.mockResolvedValueOnce(
+        mockPaginatedResult
+      );
 
       const userId = "user123";
-      const options = { addressType: "HOME", page: 2, limit: 10 };
+      const options: AddressQueryOptions = {
+        addressType: "HOME",
+        page: 2,
+        limit: 10,
+      };
       const result = await addressService.getUserAddresses(userId, options);
 
-      expect(AddressRepository.findByUserId).toHaveBeenCalledWith(
+      expect(mockAddressRepository.findByUserId).toHaveBeenCalledWith(
         userId,
         options
       );
@@ -64,9 +158,8 @@ describe("AddressService", () => {
     });
 
     it("should throw an error when database query fails", async () => {
-      (AddressRepository.findByUserId as jest.Mock).mockRejectedValueOnce(
-        new Error("Database error")
-      );
+      const errorObj = new Error("Database error");
+      mockAddressRepository.findByUserId.mockRejectedValueOnce(errorObj);
 
       const userId = "user123";
       await expect(addressService.getUserAddresses(userId)).rejects.toThrow(
@@ -77,18 +170,16 @@ describe("AddressService", () => {
 
   describe("getAddressById", () => {
     it("should return an address when valid ID is provided", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce(
-        mockAddressData
-      );
+      mockAddressRepository.findById.mockResolvedValueOnce(mockAddressData);
 
       const result = await addressService.getAddressById("123");
 
-      expect(AddressRepository.findById).toHaveBeenCalledWith("123");
+      expect(mockAddressRepository.findById).toHaveBeenCalledWith("123");
       expect(result).toEqual(mockAddressData);
     });
 
     it("should throw an error when address is not found", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce(null);
+      mockAddressRepository.findById.mockResolvedValueOnce(null);
 
       await expect(
         addressService.getAddressById("nonexistentId")
@@ -98,7 +189,7 @@ describe("AddressService", () => {
 
   describe("createAddress", () => {
     it("should create and return a new address", async () => {
-      const addressData = {
+      const addressData: Partial<Address> = {
         addressType: "SHIPPING",
         street1: "456 Market St",
         city: "Newtown",
@@ -107,29 +198,26 @@ describe("AddressService", () => {
         country: "Country",
       };
 
-      (AddressRepository.create as jest.Mock).mockResolvedValueOnce({
-        ...addressData,
+      const createdAddress: Address = {
+        ...(addressData as Address),
         id: "789",
         userId: "user123",
-      });
+      };
+
+      mockAddressRepository.create.mockResolvedValueOnce(createdAddress);
 
       const result = await addressService.createAddress("user123", addressData);
 
-      expect(AddressRepository.create).toHaveBeenCalledWith({
+      expect(mockAddressRepository.create).toHaveBeenCalledWith({
         ...addressData,
         userId: "user123",
       });
-      expect(result).toEqual({
-        ...addressData,
-        id: "789",
-        userId: "user123",
-      });
+      expect(result).toEqual(createdAddress);
     });
 
     it("should throw an error when creation fails", async () => {
-      (AddressRepository.create as jest.Mock).mockRejectedValueOnce(
-        new Error("Database error")
-      );
+      const errorObj = new Error("Database error");
+      mockAddressRepository.create.mockRejectedValueOnce(errorObj);
 
       await expect(
         addressService.createAddress("user123", {
@@ -146,16 +234,18 @@ describe("AddressService", () => {
 
   describe("updateAddress", () => {
     it("should update and return address when owner makes request", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce({
+      mockAddressRepository.findById.mockResolvedValueOnce({
         ...mockAddressData,
         userId: "user123",
       });
 
-      const updateData = { street1: "789 New St", city: "Updated City" };
-      (AddressRepository.update as jest.Mock).mockResolvedValueOnce([
-        1,
-        [{ ...mockAddressData, ...updateData }],
-      ]);
+      const updateData: Partial<Address> = {
+        street1: "789 New St",
+        city: "Updated City",
+      };
+      const updatedAddress = { ...mockAddressData, ...updateData };
+
+      mockAddressRepository.update.mockResolvedValueOnce([1, [updatedAddress]]);
 
       const result = await addressService.updateAddress(
         "123",
@@ -163,13 +253,16 @@ describe("AddressService", () => {
         updateData
       );
 
-      expect(AddressRepository.findById).toHaveBeenCalledWith("123");
-      expect(AddressRepository.update).toHaveBeenCalledWith("123", updateData);
-      expect(result).toEqual({ ...mockAddressData, ...updateData });
+      expect(mockAddressRepository.findById).toHaveBeenCalledWith("123");
+      expect(mockAddressRepository.update).toHaveBeenCalledWith(
+        "123",
+        updateData
+      );
+      expect(result).toEqual(updatedAddress);
     });
 
     it("should throw an error when address is not found", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce(null);
+      mockAddressRepository.findById.mockResolvedValueOnce(null);
 
       await expect(
         addressService.updateAddress("nonexistent", "user123", {})
@@ -177,7 +270,7 @@ describe("AddressService", () => {
     });
 
     it("should throw an error when non-owner attempts update", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce({
+      mockAddressRepository.findById.mockResolvedValueOnce({
         ...mockAddressData,
         userId: "anotherUser",
       });
@@ -192,20 +285,20 @@ describe("AddressService", () => {
 
   describe("deleteAddress", () => {
     it("should delete an address when owner makes request", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce({
+      mockAddressRepository.findById.mockResolvedValueOnce({
         ...mockAddressData,
         userId: "user123",
       });
-      (AddressRepository.delete as jest.Mock).mockResolvedValueOnce(1);
+      mockAddressRepository.delete.mockResolvedValueOnce(1);
 
       await addressService.deleteAddress("123", "user123");
 
-      expect(AddressRepository.findById).toHaveBeenCalledWith("123");
-      expect(AddressRepository.delete).toHaveBeenCalledWith("123");
+      expect(mockAddressRepository.findById).toHaveBeenCalledWith("123");
+      expect(mockAddressRepository.delete).toHaveBeenCalledWith("123");
     });
 
     it("should throw an error when address is not found", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce(null);
+      mockAddressRepository.findById.mockResolvedValueOnce(null);
 
       await expect(
         addressService.deleteAddress("nonexistent", "user123")
@@ -213,7 +306,7 @@ describe("AddressService", () => {
     });
 
     it("should throw an error when non-owner attempts deletion", async () => {
-      (AddressRepository.findById as jest.Mock).mockResolvedValueOnce({
+      mockAddressRepository.findById.mockResolvedValueOnce({
         ...mockAddressData,
         userId: "anotherUser",
       });
@@ -226,20 +319,18 @@ describe("AddressService", () => {
 
   describe("setAddressAsDefault", () => {
     it("should set an address as default", async () => {
-      (AddressRepository.setAsDefault as jest.Mock).mockResolvedValueOnce(true);
+      mockAddressRepository.setAsDefault.mockResolvedValueOnce(true);
 
       await addressService.setAddressAsDefault("123", "user123");
 
-      expect(AddressRepository.setAsDefault).toHaveBeenCalledWith(
+      expect(mockAddressRepository.setAsDefault).toHaveBeenCalledWith(
         "123",
         "user123"
       );
     });
 
     it("should throw an error when address cannot be set as default", async () => {
-      (AddressRepository.setAsDefault as jest.Mock).mockResolvedValueOnce(
-        false
-      );
+      mockAddressRepository.setAsDefault.mockResolvedValueOnce(false);
 
       await expect(
         addressService.setAddressAsDefault("123", "user123")
@@ -249,16 +340,14 @@ describe("AddressService", () => {
 
   describe("verifyAddressOwnership", () => {
     it("should verify ownership correctly", async () => {
-      (
-        AddressRepository.verifyUserOwnership as jest.Mock
-      ).mockResolvedValueOnce(true);
+      mockAddressRepository.verifyUserOwnership.mockResolvedValueOnce(true);
 
       const result = await addressService.verifyAddressOwnership(
         "user123",
         "123"
       );
 
-      expect(AddressRepository.verifyUserOwnership).toHaveBeenCalledWith(
+      expect(mockAddressRepository.verifyUserOwnership).toHaveBeenCalledWith(
         "user123",
         "123"
       );
@@ -266,9 +355,8 @@ describe("AddressService", () => {
     });
 
     it("should throw an error when verification fails", async () => {
-      (
-        AddressRepository.verifyUserOwnership as jest.Mock
-      ).mockRejectedValueOnce(new Error("Database error"));
+      const errorObj = new Error("Database error");
+      mockAddressRepository.verifyUserOwnership.mockRejectedValueOnce(errorObj);
 
       await expect(
         addressService.verifyAddressOwnership("user123", "123")

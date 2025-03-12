@@ -5,13 +5,43 @@ import * as jwtUtils from "../../utils/jwt.util.js";
 import { Roles } from "../../constants/roles.js";
 import { jest, expect, describe, it, beforeEach } from "@jest/globals";
 
-// Mock dependencies
-jest.mock("../../models/user.model.js");
-jest.mock("../../utils/jwt.util.js");
-jest.mock("../../utils/logger.js", () => ({
-  error: jest.fn(),
-  info: jest.fn(),
-}));
+// Define interfaces for better type safety
+interface UserResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
+interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface LoginDto {
+  email: string;
+  password: string;
+}
+
+interface RegisterDto extends LoginDto {
+  firstName: string;
+  lastName: string;
+  role?: string;
+  username?: string;
+}
+
+interface AuthServiceMethods {
+  register(
+    userData: RegisterDto
+  ): Promise<{ user: UserResponse; tokens: AuthTokens }>;
+  login(
+    loginData: LoginDto
+  ): Promise<{ user: UserResponse; tokens: AuthTokens }>;
+  refreshToken(refreshToken: string): Promise<AuthTokens>;
+  logout(userId: string): Promise<void>;
+  getUserById(userId: string): Promise<UserResponse>;
+}
 
 // Define a proper interface for our mock User
 interface MockUser {
@@ -23,18 +53,40 @@ interface MockUser {
   username: string;
   isActive: boolean;
   lastLogin: Date | null;
-  refreshToken?: string;
+  refreshToken?: string | null;
   comparePassword: jest.Mock;
   update: jest.Mock;
   destroy?: jest.Mock;
 }
 
+// Create typed mock functions with more explicit return types
+const mockUserFunctions = {
+  findOne: jest.fn<(query: any) => Promise<MockUser | null>>(),
+  create: jest.fn<(userData: any) => Promise<MockUser>>(),
+  findByPk: jest.fn<(id: string) => Promise<MockUser | null>>(),
+  update: jest.fn<(data: any, options: any) => Promise<[number]>>(),
+};
+
+// Mock JWT utils with proper return types
+const mockJwtUtils = {
+  generateAccessToken: jest.fn<(payload: any) => string>(),
+  generateRefreshToken: jest.fn<(payload: any) => string>(),
+  verifyRefreshToken:
+    jest.fn<(token: string) => { userId: string; role: string }>(),
+};
+
+// Mock dependencies with proper typing
+jest.mock("../../models/user.model.js", () => mockUserFunctions);
+
+jest.mock("../../utils/jwt.util.js", () => mockJwtUtils);
+
+jest.mock("../../utils/logger.js", () => ({
+  error: jest.fn(),
+  info: jest.fn(),
+}));
+
 describe("AuthService", () => {
-  let authService: AuthService;
-  let mockFindOne: jest.Mock;
-  let mockCreate: jest.Mock;
-  let mockFindByPk: jest.Mock;
-  let mockUpdate: jest.Mock;
+  let authService: AuthService & AuthServiceMethods;
 
   const mockUserData: MockUser = {
     id: "123",
@@ -58,26 +110,10 @@ describe("AuthService", () => {
     authService = new AuthService();
     jest.clearAllMocks();
 
-    // Setup mock implementation
-    mockFindOne = jest.fn();
-    mockCreate = jest.fn();
-    mockFindByPk = jest.fn();
-    mockUpdate = jest.fn();
-
-    // Assign mocks to User model methods
-    (User.findOne as jest.Mock) = mockFindOne;
-    (User.create as jest.Mock) = mockCreate;
-    (User.findByPk as jest.Mock) = mockFindByPk;
-    (User.update as jest.Mock) = mockUpdate;
-
     // Default mock implementations for JWT utils
-    (jwtUtils.generateAccessToken as jest.Mock).mockReturnValue(
-      mockTokens.accessToken
-    );
-    (jwtUtils.generateRefreshToken as jest.Mock).mockReturnValue(
-      mockTokens.refreshToken
-    );
-    (jwtUtils.verifyRefreshToken as jest.Mock).mockReturnValue({
+    mockJwtUtils.generateAccessToken.mockReturnValue(mockTokens.accessToken);
+    mockJwtUtils.generateRefreshToken.mockReturnValue(mockTokens.refreshToken);
+    mockJwtUtils.verifyRefreshToken.mockReturnValue({
       userId: "123",
       role: Roles.USER,
     });
@@ -86,7 +122,7 @@ describe("AuthService", () => {
   describe("register", () => {
     it("should create a new user and return user data with tokens", async () => {
       // Setup
-      const registerData = {
+      const registerData: RegisterDto = {
         email: "new@example.com",
         password: "Password123!",
         firstName: "New",
@@ -101,17 +137,17 @@ describe("AuthService", () => {
         update: jest.fn().mockResolvedValue(undefined),
       };
 
-      mockFindOne.mockResolvedValue(null);
-      mockCreate.mockResolvedValue(createdUser);
+      mockUserFunctions.findOne.mockResolvedValue(null);
+      mockUserFunctions.create.mockResolvedValue(createdUser);
 
       // Execute
       const result = await authService.register(registerData);
 
       // Assert
-      expect(mockFindOne).toHaveBeenCalledWith({
+      expect(mockUserFunctions.findOne).toHaveBeenCalledWith({
         where: { email: registerData.email },
       });
-      expect(mockCreate).toHaveBeenCalledWith({
+      expect(mockUserFunctions.create).toHaveBeenCalledWith({
         ...registerData,
         username: registerData.email,
         role: Roles.USER,
@@ -126,25 +162,28 @@ describe("AuthService", () => {
 
     it("should throw an error if email already exists", async () => {
       // Setup
-      const registerData = {
+      const registerData: RegisterDto = {
         email: "existing@example.com",
         password: "Password123!",
         firstName: "Existing",
         lastName: "User",
       };
 
-      mockFindOne.mockResolvedValue({ id: "456" });
+      mockUserFunctions.findOne.mockResolvedValue({
+        ...mockUserData,
+        id: "456",
+      });
 
       // Execute & Assert
       await expect(authService.register(registerData)).rejects.toThrow(
         "Email already registered"
       );
-      expect(mockCreate).not.toHaveBeenCalled();
+      expect(mockUserFunctions.create).not.toHaveBeenCalled();
     });
 
     it("should use custom role if provided", async () => {
       // Setup
-      const registerData = {
+      const registerData: RegisterDto = {
         email: "admin@example.com",
         password: "Password123!",
         firstName: "Admin",
@@ -161,14 +200,14 @@ describe("AuthService", () => {
         update: jest.fn().mockResolvedValue(undefined),
       };
 
-      mockFindOne.mockResolvedValue(null);
-      mockCreate.mockResolvedValue(createdUser);
+      mockUserFunctions.findOne.mockResolvedValue(null);
+      mockUserFunctions.create.mockResolvedValue(createdUser);
 
       // Execute
       await authService.register(registerData);
 
       // Assert
-      expect(mockCreate).toHaveBeenCalledWith({
+      expect(mockUserFunctions.create).toHaveBeenCalledWith({
         ...registerData,
         username: registerData.email,
       });
@@ -178,7 +217,7 @@ describe("AuthService", () => {
   describe("login", () => {
     it("should return user data and tokens when credentials are valid", async () => {
       // Setup
-      const loginData = {
+      const loginData: LoginDto = {
         email: "test@example.com",
         password: "Password123!",
       };
@@ -189,13 +228,13 @@ describe("AuthService", () => {
         update: jest.fn().mockResolvedValue(undefined),
       };
 
-      mockFindOne.mockResolvedValue(mockUser);
+      mockUserFunctions.findOne.mockResolvedValue(mockUser);
 
       // Execute
       const result = await authService.login(loginData);
 
       // Assert
-      expect(mockFindOne).toHaveBeenCalledWith({
+      expect(mockUserFunctions.findOne).toHaveBeenCalledWith({
         where: { email: loginData.email },
       });
       expect(mockUser.comparePassword).toHaveBeenCalledWith(loginData.password);
@@ -210,12 +249,12 @@ describe("AuthService", () => {
 
     it("should throw an error if user is not found", async () => {
       // Setup
-      const loginData = {
+      const loginData: LoginDto = {
         email: "nonexistent@example.com",
         password: "Password123!",
       };
 
-      mockFindOne.mockResolvedValue(null);
+      mockUserFunctions.findOne.mockResolvedValue(null);
 
       // Execute & Assert
       await expect(authService.login(loginData)).rejects.toThrow(
@@ -225,7 +264,7 @@ describe("AuthService", () => {
 
     it("should throw an error if password is incorrect", async () => {
       // Setup
-      const loginData = {
+      const loginData: LoginDto = {
         email: "test@example.com",
         password: "WrongPassword123!",
       };
@@ -235,7 +274,7 @@ describe("AuthService", () => {
         comparePassword: jest.fn().mockResolvedValue(false),
       };
 
-      mockFindOne.mockResolvedValue(mockUser);
+      mockUserFunctions.findOne.mockResolvedValue(mockUser);
 
       // Execute & Assert
       await expect(authService.login(loginData)).rejects.toThrow(
@@ -246,7 +285,7 @@ describe("AuthService", () => {
 
     it("should throw an error if account is inactive", async () => {
       // Setup
-      const loginData = {
+      const loginData: LoginDto = {
         email: "inactive@example.com",
         password: "Password123!",
       };
@@ -257,7 +296,7 @@ describe("AuthService", () => {
         comparePassword: jest.fn().mockResolvedValue(true),
       };
 
-      mockFindOne.mockResolvedValue(mockUser);
+      mockUserFunctions.findOne.mockResolvedValue(mockUser);
 
       // Execute & Assert
       await expect(authService.login(loginData)).rejects.toThrow(
@@ -279,14 +318,14 @@ describe("AuthService", () => {
       };
 
       (jwtUtils.verifyRefreshToken as jest.Mock).mockReturnValue({ userId });
-      mockFindByPk.mockResolvedValue(mockUser);
+      mockUserFunctions.findByPk.mockResolvedValue(mockUser);
 
       // Execute
       const result = await authService.refreshToken(refreshToken);
 
       // Assert
       expect(jwtUtils.verifyRefreshToken).toHaveBeenCalledWith(refreshToken);
-      expect(mockFindByPk).toHaveBeenCalledWith(userId);
+      expect(mockUserFunctions.findByPk).toHaveBeenCalledWith(userId);
       expect(mockUser.update).toHaveBeenCalledWith({
         refreshToken: mockTokens.refreshToken,
       });
@@ -305,7 +344,7 @@ describe("AuthService", () => {
       await expect(authService.refreshToken(refreshToken)).rejects.toThrow(
         "Invalid refresh token"
       );
-      expect(mockFindByPk).not.toHaveBeenCalled();
+      expect(mockUserFunctions.findByPk).not.toHaveBeenCalled();
     });
 
     it("should throw an error if user is not found", async () => {
@@ -314,7 +353,7 @@ describe("AuthService", () => {
       const userId = "nonexistent";
 
       (jwtUtils.verifyRefreshToken as jest.Mock).mockReturnValue({ userId });
-      mockFindByPk.mockResolvedValue(null);
+      mockUserFunctions.findByPk.mockResolvedValue(null);
 
       // Execute & Assert
       await expect(authService.refreshToken(refreshToken)).rejects.toThrow(
@@ -334,7 +373,7 @@ describe("AuthService", () => {
       };
 
       (jwtUtils.verifyRefreshToken as jest.Mock).mockReturnValue({ userId });
-      mockFindByPk.mockResolvedValue(mockUser);
+      mockUserFunctions.findByPk.mockResolvedValue(mockUser);
 
       // Execute & Assert
       await expect(authService.refreshToken(refreshToken)).rejects.toThrow(
@@ -354,7 +393,7 @@ describe("AuthService", () => {
       };
 
       (jwtUtils.verifyRefreshToken as jest.Mock).mockReturnValue({ userId });
-      mockFindByPk.mockResolvedValue(mockUser);
+      mockUserFunctions.findByPk.mockResolvedValue(mockUser);
 
       // Execute & Assert
       await expect(authService.refreshToken(refreshToken)).rejects.toThrow(
@@ -367,13 +406,13 @@ describe("AuthService", () => {
     it("should clear refresh token for the user", async () => {
       // Setup
       const userId = "123";
-      mockUpdate.mockResolvedValue([1]); // Sequelize update returns array with count of affected rows
+      mockUserFunctions.update.mockResolvedValue([1]); // Sequelize update returns array with count of affected rows
 
       // Execute
       await authService.logout(userId);
 
       // Assert
-      expect(mockUpdate).toHaveBeenCalledWith(
+      expect(mockUserFunctions.update).toHaveBeenCalledWith(
         { refreshToken: null },
         { where: { id: userId } }
       );
@@ -385,13 +424,13 @@ describe("AuthService", () => {
       // Setup
       const userId = "123";
 
-      mockFindByPk.mockResolvedValue(mockUserData);
+      mockUserFunctions.findByPk.mockResolvedValue(mockUserData);
 
       // Execute
       const result = await authService.getUserById(userId);
 
       // Assert
-      expect(mockFindByPk).toHaveBeenCalledWith(userId);
+      expect(mockUserFunctions.findByPk).toHaveBeenCalledWith(userId);
       expect(result).toEqual({
         id: mockUserData.id,
         email: mockUserData.email,
@@ -405,7 +444,7 @@ describe("AuthService", () => {
       // Setup
       const userId = "nonexistent";
 
-      mockFindByPk.mockResolvedValue(null);
+      mockUserFunctions.findByPk.mockResolvedValue(null);
 
       // Execute & Assert
       await expect(authService.getUserById(userId)).rejects.toThrow(

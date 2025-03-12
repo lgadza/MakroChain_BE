@@ -4,7 +4,7 @@
   "description": "MakroChain Backend with robust architecture and high standards",
   "main": "dist/src/server.js",
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "jest",
     "dev": "nodemon --exec ts-node-esm src/server.ts",
     "build": "tsc",
     "start": "node dist/index.js",

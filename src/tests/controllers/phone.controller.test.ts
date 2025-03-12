@@ -28,11 +28,11 @@ describe("PhoneController", () => {
     phoneType: "MOBILE",
     countryCode: "1",
     number: "5551234567",
-    extension: null,
+    extension: undefined, // Changed from null to undefined
     isDefault: true,
     isVerified: false,
-    verificationCode: null,
-    verificationExpires: null,
+    verificationCode: undefined, // Changed from null to undefined
+    verificationExpires: undefined, // Changed from null to undefined
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -140,8 +140,8 @@ describe("PhoneController", () => {
       expect(mockPhoneService.getUserPhones).not.toHaveBeenCalled();
       expect(mockNext).toHaveBeenCalled();
       const error = mockNext.mock.calls[0][0];
-      expect(error.statusCode).toBe(401);
-      expect(error.message).toBe("Authentication required");
+      expect((error as any).statusCode).toBe(401);
+      expect((error as any).message).toBe("Authentication required");
     });
   });
 
@@ -214,7 +214,7 @@ describe("PhoneController", () => {
       // Assert
       expect(mockPhoneService.getPhoneById).toHaveBeenCalledWith("123");
       expect(mockNext).toHaveBeenCalled();
-      const error = mockNext.mock.calls[0][0];
+      const error = mockNext.mock.calls[0][0] as { statusCode: number };
       expect(error.statusCode).toBe(403);
     });
   });
