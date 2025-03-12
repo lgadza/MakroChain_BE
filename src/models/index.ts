@@ -66,6 +66,7 @@ export const sequelize = initializeSequelize();
 import UserModel, { initUser } from "./user.model.js";
 import { initAddress, initAddressAssociations } from "./address.model.js";
 import { initPhone, initPhoneAssociations } from "./phone.model.js";
+import Harvest, { initHarvest } from "./harvest.model.js";
 
 // Initialize the db object
 const db: DbInterface = {
@@ -77,6 +78,7 @@ const db: DbInterface = {
 db.User = initUser(sequelize, DataTypes);
 db.Address = initAddress(sequelize);
 db.Phone = initPhone(sequelize);
+initHarvest(sequelize, DataTypes);
 
 // Add this initModels export function that's being imported by dbConnect.ts
 export const initModels = (sequelize: Sequelize) => {
@@ -135,5 +137,7 @@ export const models = {
   Address: db.Address,
   Phone: db.Phone,
 };
+
+export { default as Harvest } from "./harvest.model.js";
 
 export default db;

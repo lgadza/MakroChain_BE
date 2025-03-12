@@ -1,33 +1,35 @@
 /**
- * Define user roles for the application
+ * User roles for the application
  */
 export enum Roles {
   ADMIN = "ADMIN",
   MANAGER = "MANAGER",
-  USER = "USER",
+  FARMER = "FARMER",
+  BUYER = "BUYER",
   GUEST = "GUEST",
 }
 
 /**
- * Define permissions for resources
+ * Resources that can be accessed
  */
-export enum Permissions {
-  READ = "read",
-  CREATE = "create",
-  UPDATE = "update",
-  DELETE = "delete",
-  FULL = "full",
+export enum Resources {
+  USERS = "USERS",
+  HARVESTS = "HARVESTS",
+  TRANSACTIONS = "TRANSACTIONS",
+  REPORTS = "REPORTS",
+  SETTINGS = "SETTINGS",
 }
 
 /**
- * Resource types in the application
+ * Permissions that can be granted on resources
  */
-export enum Resources {
-  USERS = "users",
-  PRODUCTS = "products",
-  ORDERS = "orders",
-  REPORTS = "reports",
-  SETTINGS = "settings",
+export enum Permissions {
+  CREATE = "CREATE",
+  READ = "READ",
+  UPDATE = "UPDATE",
+  DELETE = "DELETE",
+  EXPORT = "EXPORT",
+  IMPORT = "IMPORT",
 }
 
 /**
@@ -41,58 +43,108 @@ export type RbacMatrix = {
 
 /**
  * Role-based access control matrix
+ * Maps roles to resources and their permitted actions
  */
 export const RBAC_MATRIX: RbacMatrix = {
   [Roles.ADMIN]: {
     [Resources.USERS]: [
-      Permissions.READ,
       Permissions.CREATE,
+      Permissions.READ,
       Permissions.UPDATE,
       Permissions.DELETE,
+      Permissions.EXPORT,
+      Permissions.IMPORT,
     ],
-    [Resources.PRODUCTS]: [
-      Permissions.READ,
+    [Resources.HARVESTS]: [
       Permissions.CREATE,
+      Permissions.READ,
       Permissions.UPDATE,
       Permissions.DELETE,
+      Permissions.EXPORT,
+      Permissions.IMPORT,
     ],
-    [Resources.ORDERS]: [
-      Permissions.READ,
+    [Resources.TRANSACTIONS]: [
       Permissions.CREATE,
+      Permissions.READ,
       Permissions.UPDATE,
       Permissions.DELETE,
+      Permissions.EXPORT,
     ],
     [Resources.REPORTS]: [
-      Permissions.READ,
       Permissions.CREATE,
-      Permissions.UPDATE,
-      Permissions.DELETE,
+      Permissions.READ,
+      Permissions.EXPORT,
     ],
     [Resources.SETTINGS]: [Permissions.READ, Permissions.UPDATE],
   },
   [Roles.MANAGER]: {
-    [Resources.USERS]: [Permissions.READ],
-    [Resources.PRODUCTS]: [
-      Permissions.READ,
+    [Resources.USERS]: [
       Permissions.CREATE,
+      Permissions.READ,
       Permissions.UPDATE,
     ],
-    [Resources.ORDERS]: [Permissions.READ, Permissions.UPDATE],
+    [Resources.HARVESTS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+      Permissions.DELETE,
+      Permissions.EXPORT,
+    ],
+    [Resources.TRANSACTIONS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+      Permissions.EXPORT,
+    ],
+    [Resources.REPORTS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.EXPORT,
+    ],
+    [Resources.SETTINGS]: [Permissions.READ],
+  },
+  [Roles.FARMER]: {
+    [Resources.USERS]: [Permissions.READ, Permissions.UPDATE],
+    [Resources.HARVESTS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+      Permissions.DELETE,
+    ],
+    [Resources.TRANSACTIONS]: [
+      Permissions.CREATE,
+      Permissions.READ,
+      Permissions.UPDATE,
+    ],
     [Resources.REPORTS]: [Permissions.READ],
     [Resources.SETTINGS]: [Permissions.READ],
   },
-  [Roles.USER]: {
-    [Resources.USERS]: [],
-    [Resources.PRODUCTS]: [Permissions.READ],
-    [Resources.ORDERS]: [Permissions.READ, Permissions.CREATE],
+  [Roles.BUYER]: {
+    [Resources.USERS]: [Permissions.READ, Permissions.UPDATE],
+    [Resources.HARVESTS]: [Permissions.READ],
+    [Resources.TRANSACTIONS]: [Permissions.CREATE, Permissions.READ],
     [Resources.REPORTS]: [],
-    [Resources.SETTINGS]: [],
+    [Resources.SETTINGS]: [Permissions.READ],
   },
   [Roles.GUEST]: {
     [Resources.USERS]: [],
-    [Resources.PRODUCTS]: [Permissions.READ],
-    [Resources.ORDERS]: [],
+    [Resources.HARVESTS]: [Permissions.READ],
+    [Resources.TRANSACTIONS]: [],
     [Resources.REPORTS]: [],
     [Resources.SETTINGS]: [],
   },
+};
+
+/**
+ * Check if a role has a specific permission for a resource
+ */
+export const hasPermission = (
+  role: Roles,
+  resource: Resources,
+  permission: Permissions
+): boolean => {
+  if (!RBAC_MATRIX[role] || !RBAC_MATRIX[role][resource]) {
+    return false;
+  }
+  return RBAC_MATRIX[role][resource].includes(permission);
 };

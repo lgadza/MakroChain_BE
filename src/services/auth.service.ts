@@ -43,7 +43,7 @@ export class AuthService implements IAuthService {
     const user = await User.create({
       ...userData,
       username: (userData as any).username || userData.email, // Add username, use email as fallback if not provided
-      role: userData.role || Roles.USER, // Default to USER role if not specified
+      role: userData.role || Roles.BUYER, // Default to USER role if not specified
     });
 
     // Generate tokens

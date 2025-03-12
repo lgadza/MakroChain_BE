@@ -15,6 +15,8 @@ const config = {
     port: parseInt(process.env.DB_PORT || "5432", 10),
     dialect: "postgres",
     ssl: process.env.DB_SSL === "true",
+    sync: process.env.DB_SYNC === "true" || false,
+    forceSync: process.env.DB_FORCE_SYNC === "true" || false,
   },
 
   // JWT config

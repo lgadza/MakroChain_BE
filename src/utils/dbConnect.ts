@@ -1,8 +1,11 @@
 import { Sequelize, DataTypes } from "sequelize";
 import dotenv from "dotenv";
-import { initModels } from "../models/index.js";
 import { setupLogger } from "./logger.js";
 import { initUser } from "../models/user.model.js";
+import { initAddress } from "../models/address.model.js";
+import { initPhone } from "../models/phone.model.js";
+import { initHarvest } from "../models/harvest.model.js";
+import { initTransaction } from "../models/transaction.model.js";
 
 dotenv.config();
 const logger = setupLogger();
@@ -36,12 +39,19 @@ const sequelize = new Sequelize(
 export const initializeModels = () => {
   // Initialize User model
   const User = initUser(sequelize, DataTypes);
+  const Harvest = initHarvest(sequelize, DataTypes);
+  const Address = initAddress(sequelize);
+  const Phone = initPhone(sequelize);
+  const Transaction = initTransaction(sequelize, DataTypes);
 
   // Add other model initializations here as your app grows
 
   return {
     User,
-    // Add other models here
+    Harvest,
+    Address,
+    Phone,
+    Transaction,
   };
 };
 

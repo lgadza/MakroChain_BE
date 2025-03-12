@@ -104,7 +104,7 @@ export const initUser = (sequelize: Sequelize, dataTypes: typeof DataTypes) => {
       },
       role: {
         type: dataTypes.STRING(20),
-        defaultValue: Roles.USER,
+        defaultValue: Roles.BUYER,
         validate: {
           isIn: [Object.values(Roles)],
         },

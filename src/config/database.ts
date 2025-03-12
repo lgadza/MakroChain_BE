@@ -43,4 +43,22 @@ export const testConnection = async () => {
   }
 };
 
+// Add function to sync models with database
+export const syncModels = async () => {
+  try {
+    if (config.database.sync) {
+      console.log("Synchronizing database models...");
+      await sequelize.sync({ force: config.database.forceSync });
+      console.log("Database synchronization completed successfully.");
+      return true;
+    } else {
+      console.log("Database synchronization is disabled.");
+      return false;
+    }
+  } catch (error) {
+    console.error("Unable to synchronize database models:", error);
+    return false;
+  }
+};
+
 export default sequelize;
